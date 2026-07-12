@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum JobKind {
+  THUMBNAIL
+  POSTER
+  METADATA
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(USER)
+  tokenVersion Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  sessions     Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Album {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  coverMediaId String?
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  media        Media[]
+}
+
+model Media {
+  id               String             @id @default(cuid())
+  originalFilename String
+  safeFilename     String
+  title            String?
+  description      String?
+  mediaType        MediaType
+  mimeType         String
+  size             BigInt
+  width            Int?
+  height           Int?
+  duration         Float?
+  captureAt        DateTime?
+  uploadedAt       DateTime           @default(now())
+  favorite         Boolean            @default(false)
+  orientation      Int?
+  hash             String             @unique
+  storagePath      String
+  thumbPath        String?
+  posterPath       String?
+  metadata         Json?
+  processingStatus ProcessingStatus    @default(PENDING)
+  processingError  String?
+  albumId          String?
+  album            Album?             @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  albumOrder       Int                @default(0)
+  tags             MediaTag[]
+  jobs             ProcessingJob[]
+
+  @@index([mediaType])
+  @@index([favorite])
+  @@index([captureAt])
+  @@index([uploadedAt])
+  @@index([albumId, albumOrder])
+  @@index([processingStatus])
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  media     MediaTag[]
+}
+
+model MediaTag {
+  mediaId String
+  tagId   String
+  media   Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  tag     Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([mediaId, tagId])
+  @@index([tagId])
+}
+
+model ProcessingJob {
+  id         String   @id @default(cuid())
+  mediaId    String
+  media      Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  kind       JobKind
+  status     JobStatus @default(PENDING)
+  attempts   Int       @default(0)
+  lastError  String?
+  runAfter   DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([status, runAfter])
+  @@index([mediaId, kind])
+}

@@ -1,0 +1,251 @@
+# Fenjalbum
+
+Private, self-hostable photo and video album app built with Next.js, TypeScript, Prisma, PostgreSQL, Tailwind, and Docker.
+
+## Screenshots
+
+Add preview images to `screenshots/` if you want to show the UI in the repository.
+
+## What this is
+
+Fenjalbum is a private media library for a home server or local machine.
+
+- Every page is protected behind login.
+- Media is never exposed from a public static directory.
+- Files are served through authenticated routes.
+- Original media stays on disk; thumbnails and posters are generated separately.
+- Uploads, metadata extraction, and thumbnail generation are designed for local/offline use after dependencies are installed.
+
+## Architecture
+
+- Frontend: Next.js App Router, React, Tailwind CSS, custom polished UI primitives.
+- Auth: secure cookie-based session with JWT and CSRF protection.
+- Database: PostgreSQL with Prisma ORM.
+- Storage: local filesystem for originals, thumbnails, posters, and temp uploads.
+- Media processing: Sharp for images, FFmpeg/ffprobe for videos.
+- Background work: a small polling worker processes queued media jobs.
+- Deployment: Dockerfile + docker-compose with persistent volumes.
+
+## Folder structure
+
+- `app/` routes, pages, and API handlers
+- `components/` shared UI and client-side interactions
+- `lib/` auth, storage, security, media processing, upload helpers
+- `prisma/` schema, seed script, and migrations
+- `scripts/` worker and backup utilities
+- `tests/` unit tests for auth, range requests, upload validation, and filters
+
+## Authentication flow
+
+1. The first administrator is created from `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_NAME`.
+2. Login is handled on `/login`.
+3. A secure HTTP-only session cookie is issued after successful auth.
+4. A CSRF cookie is also set and required for state-changing requests.
+5. All application routes, API routes, and media routes are protected by middleware or server-side checks.
+6. Logout clears the session and CSRF cookies.
+
+## Storage and media flow
+
+- Uploaded files arrive through a streamed multipart upload endpoint.
+- Files are written to a temporary upload directory first.
+- A SHA-256 hash is used for duplicate detection.
+- Originals are moved into the configured media storage root using normalized filenames.
+- A background worker extracts metadata and generates image thumbnails or video posters.
+- Media is streamed back through authenticated API routes that support safe range requests for video playback.
+
+## Primary user flows
+
+- Login and logout
+- Browse all media
+- Filter by photo/video, album, favorites, search, sort, and date
+- Open full-screen photo and video viewer
+- Upload one or many files
+- Create, rename, and manage albums
+- Mark items as favorites
+- Admin review of media, albums, and settings
+- Retry failed processing jobs
+- Change the administrator password
+
+## Docker deployment
+
+Build and start everything with:
+
+```bash
+docker compose up -d --build
+```
+
+The compose stack includes:
+
+- `web` application container
+- `worker` background processor container
+- `db` PostgreSQL container
+
+The app expects these persistent volumes:
+
+- PostgreSQL data
+- Original media
+- Thumbnails
+- Posters
+- Temporary upload workspace
+
+If you are running behind a reverse proxy, set `APP_URL` to your HTTPS public URL and configure proxy headers correctly.
+
+## Local development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the database migration and Prisma client generation:
+
+```bash
+npx prisma migrate dev
+```
+
+Start the app:
+
+```bash
+npm run dev
+```
+
+Run the worker in a second terminal:
+
+```bash
+npm run worker
+```
+
+If you want to run the app or worker on your host machine while Postgres stays in Docker, create a `.env.local` with a host-reachable database URL such as:
+
+```bash
+DATABASE_URL=postgresql://fenjalbum:fenjalbum@localhost:5432/fenjalbum?schema=public
+```
+
+The worker and seed scripts load `.env` first and then `.env.local`, so host-specific overrides work without changing the Docker configuration.
+
+Production build:
+
+```bash
+npm run build
+```
+
+Type check:
+
+```bash
+npm run typecheck
+```
+
+Lint:
+
+```bash
+npm run lint
+```
+
+Tests:
+
+```bash
+npm test
+```
+
+## Environment variables
+
+Copy `.env.example` to `.env` and adjust values.
+
+- `APP_URL`: canonical application URL, used for cookie security and redirects
+- `DATABASE_URL`: PostgreSQL connection string
+- `SESSION_SECRET`: long random secret for session signing
+- `ADMIN_EMAIL`: first admin email
+- `ADMIN_PASSWORD`: first admin password
+- `ADMIN_NAME`: first admin display name
+- `MEDIA_ROOT`: filesystem path for originals
+- `THUMB_ROOT`: filesystem path for generated thumbnails
+- `POSTER_ROOT`: filesystem path for generated video posters
+- `UPLOAD_TMP_ROOT`: filesystem path for temporary upload files
+- `MAX_UPLOAD_MB`: per-request upload size limit
+- `RATE_LIMIT_WINDOW_MS`: rate limit window in milliseconds
+- `RATE_LIMIT_LOGIN_MAX`: login attempts per window
+- `RATE_LIMIT_UPLOAD_MAX`: uploads per window
+- `TRUST_PROXY`: whether to trust reverse-proxy headers
+- `SEED_DEMO`: optional demo seed mode for development only
+- `WORKER_POLL_MS`: background worker polling interval
+
+## Default setup
+
+1. Create a `.env` file from `.env.example`.
+2. Set a strong `SESSION_SECRET`.
+3. Set the initial administrator email and password.
+4. Ensure the media directories exist or let the app create them.
+5. Start the stack with `docker compose up -d --build`.
+6. Open the app and log in with the admin credentials.
+
+## Backup strategy
+
+Back up these pieces separately:
+
+- PostgreSQL database
+- Original media files
+- Generated thumbnails
+- Generated posters
+- App configuration
+
+Example backup script:
+
+```bash
+BACKUP_ROOT=/backups \
+DATABASE_URL="postgresql://..." \
+MEDIA_ROOT=/data/media \
+THUMB_ROOT=/data/thumbs \
+POSTER_ROOT=/data/posters \
+./scripts/backup.sh
+```
+
+The repository includes `scripts/backup.sh`, which creates:
+
+- a custom-format PostgreSQL dump
+- tar archives for originals, thumbnails, and posters
+
+## Restore procedure
+
+1. Stop the application containers.
+2. Restore media, thumbnails, and posters into their configured locations.
+3. Restore the PostgreSQL dump using `pg_restore`.
+4. Start the stack again.
+
+Example:
+
+```bash
+pg_restore --clean --if-exists --dbname="$DATABASE_URL" /path/to/database.dump
+```
+
+If you are restoring onto a fresh server, restore the database first, then media files.
+
+## Security notes
+
+Threat model:
+
+- The app is meant for trusted home-network use, but it still assumes untrusted browsers and potential network attackers.
+- All media endpoints require authentication.
+- Sessions use HTTP-only cookies.
+- State-changing requests require CSRF tokens.
+- Filenames are normalized and path traversal is blocked.
+- Uploads are restricted by MIME signature and file type validation.
+- Login and upload endpoints are rate limited.
+
+Limitations:
+
+- Rate limiting is in-memory, so it resets on process restart and is not shared across multiple app instances.
+- The worker is intentionally simple and is best used as a single replica.
+- Video transcoding is not enabled by default; browser support depends on the uploaded source format.
+
+## Recommended next improvements
+
+1. Add multi-user admin screens for account creation and role management.
+2. Add album editing and bulk media management UIs.
+3. Add a stronger distributed rate limiter if you scale beyond one instance.
+4. Add optional video transcoding to a browser-friendly format.
+5. Add a full backup/restore admin screen.
+
+## License
+
+MIT
