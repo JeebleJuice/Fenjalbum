@@ -45,6 +45,8 @@ export default async function AdminPage() {
       <div className="flex flex-wrap gap-2">
         <Button asChild><Link href="/admin/media">Manage media</Link></Button>
         <Button asChild variant="secondary"><Link href="/admin/albums">Manage albums</Link></Button>
+        <Button asChild variant="secondary"><Link href="/admin/trash">Trash</Link></Button>
+        <Button asChild variant="secondary"><Link href="/admin/users">Users</Link></Button>
         <Button asChild variant="secondary"><Link href="/admin/settings">Settings</Link></Button>
       </div>
     </AppShell>

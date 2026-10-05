@@ -14,6 +14,8 @@ Fenjalbum is a private media library for a home server or local machine.
 - Media is never exposed from a public static directory.
 - Files are served through authenticated routes.
 - Original media stays on disk; thumbnails and posters are generated separately.
+- HEIC/HEIF files are converted for display, EXIF dates and GPS coordinates are retained, and incompatible video containers receive browser-friendly playback copies.
+- Deletion uses a recoverable administrator trash instead of immediately removing originals.
 - Uploads, metadata extraction, and thumbnail generation are designed for local/offline use after dependencies are installed.
 
 ## Architecture
@@ -56,10 +58,12 @@ Fenjalbum is a private media library for a home server or local machine.
 ## Primary user flows
 
 - Login and logout
+- Responsive sidebar navigation with active-page highlighting and a mobile drawer
 - Browse all media
 - Filter by photo/video, album, favorites, search, sort, and date
 - Open full-screen photo and video viewer
 - Upload one or many files
+- Upload an entire browser-supported folder or recursively import a server directory
 - Create, rename, and manage albums
 - Mark items as favorites
 - Admin review of media, albums, and settings
@@ -92,37 +96,22 @@ If you are running behind a reverse proxy, set `APP_URL` to your HTTPS public UR
 
 ## Local development
 
-Install dependencies:
+The full first-run and everyday workflow is in [`docs/local-development.md`](docs/local-development.md). In short, PostgreSQL runs in Docker while Next.js and the worker run directly on the development computer:
 
 ```bash
 npm install
-```
-
-Run the database migration and Prisma client generation:
-
-```bash
-npx prisma migrate dev
-```
-
-Start the app:
-
-```bash
+npm run db:dev
+npm run prisma:migrate:local
 npm run dev
 ```
 
-Run the worker in a second terminal:
+Run the worker in a second terminal so uploaded items are processed:
 
 ```bash
 npm run worker
 ```
 
-If you want to run the app or worker on your host machine while Postgres stays in Docker, create a `.env.local` with a host-reachable database URL such as:
-
-```bash
-DATABASE_URL=postgresql://fenjalbum:fenjalbum@localhost:5432/fenjalbum?schema=public
-```
-
-The worker and seed scripts load `.env` first and then `.env.local`, so host-specific overrides work without changing the Docker configuration.
+Copy `.env.local.example` to `.env.local` on a new development computer. The local Prisma scripts, worker, and seed process load `.env.local` after `.env`, so host-specific database and storage paths override container defaults correctly.
 
 Production build:
 
@@ -236,15 +225,16 @@ Limitations:
 
 - Rate limiting is in-memory, so it resets on process restart and is not shared across multiple app instances.
 - The worker is intentionally simple and is best used as a single replica.
-- Video transcoding is not enabled by default; browser support depends on the uploaded source format.
+- Videos that are not already browser-friendly receive an H.264/AAC playback derivative while the original remains untouched.
 
 ## Recommended next improvements
 
-1. Add multi-user admin screens for account creation and role management.
-2. Add album editing and bulk media management UIs.
+1. Add an optional native iOS/Android client for continuous background Camera Roll backup.
+2. Add map and face/object-search views on top of the stored EXIF metadata.
 3. Add a stronger distributed rate limiter if you scale beyond one instance.
-4. Add optional video transcoding to a browser-friendly format.
-5. Add a full backup/restore admin screen.
+4. Add a guided restore screen and automated off-device backup target.
+
+The complete production workflow is documented in [`docs/home-server.md`](docs/home-server.md).
 
 ## License
 

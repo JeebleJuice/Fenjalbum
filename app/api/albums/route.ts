@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, requireCsrfToken } from "@/lib/auth";
+import { requireUser, requireCsrfToken } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export async function GET() {
+  await requireUser();
   const albums = await prisma.album.findMany({
     orderBy: { sortOrder: "asc" },
     include: { media: true }
@@ -11,7 +12,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  await requireAdmin();
+  await requireUser();
   await requireCsrfToken(request);
   const form = await request.formData();
   const title = String(form.get("title") ?? "").trim();

@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import Busboy from "busboy";
 import { createWriteStream } from "node:fs";
-import { mkdir } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import { Readable } from "node:stream";
-import { ensureBootstrapAdmin, requireAdmin, requireCsrfToken } from "@/lib/auth";
+import { ensureBootstrapAdmin, requireUser, requireCsrfToken } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { getClientIp, rateLimit } from "@/lib/security";
 import { tempUploadPath } from "@/lib/storage";
 import { importUploadedFile } from "@/lib/upload";
-import { prisma } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const temporaryFiles = new Set<string>();
   try {
     await ensureBootstrapAdmin();
-    await requireAdmin();
+    await requireUser();
     await requireCsrfToken(request);
 
     const ip = getClientIp(request.headers);
@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       const filename = path.basename(info.filename || "upload.bin");
       const id = crypto.randomUUID();
       const tmpPath = tempUploadPath(id, filename);
+      temporaryFiles.add(tmpPath);
       pending.push(
         (async () => {
           await mkdir(path.dirname(tmpPath), { recursive: true });
@@ -67,22 +68,15 @@ export async function POST(request: NextRequest) {
           const imported = await importUploadedFile({
             tmpPath,
             originalFilename: filename,
-            receivedSize: write.bytesWritten
+            receivedSize: write.bytesWritten,
+            albumId: targetAlbumId
           });
+          temporaryFiles.delete(tmpPath);
           if (imported.duplicate) {
             results.push({ duplicate: true, existingId: imported.existing.id, filename });
             return;
           }
-          if (targetAlbumId) {
-            await prisma.media.update({ where: { id: imported.media.id }, data: { albumId: targetAlbumId } });
-          }
           results.push({ duplicate: false, id: imported.media.id, filename });
-          await prisma.processingJob.create({
-            data: {
-              mediaId: imported.media.id,
-              kind: "METADATA"
-            }
-          });
         })()
       );
     });
@@ -99,5 +93,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload failed";
     return NextResponse.json({ error: message }, { status: 500 });
+  } finally {
+    await Promise.all(Array.from(temporaryFiles, (tmpPath) => rm(tmpPath, { force: true }).catch(() => undefined)));
   }
 }

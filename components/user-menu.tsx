@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, UserCircle2 } from "lucide-react";
 import { Button, Panel } from "@/components/ui";
 
-export function UserMenu({ user }: { user: { name: string; email: string } }) {
+export function UserMenu({ user, compact = false }: { user: { name: string; email: string }; compact?: boolean }) {
   const router = useRouter();
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST", headers: { "x-csrf-token": document.cookie.match(/fenjalbum_csrf=([^;]+)/)?.[1] ?? "" } });
@@ -19,9 +19,9 @@ export function UserMenu({ user }: { user: { name: string; email: string } }) {
         <div className="truncate text-sm font-medium">{user.name}</div>
         <div className="truncate text-xs text-[hsl(var(--fg))]/60">{user.email}</div>
       </div>
-      <Button variant="secondary" className="ml-2" onClick={logout}>
+      <Button variant="secondary" className={compact ? "ml-auto h-9 w-9 shrink-0 px-0" : "ml-2"} onClick={logout} aria-label="Log out">
         <LogOut className="h-4 w-4" />
-        Logout
+        {compact ? <span className="sr-only">Logout</span> : "Logout"}
       </Button>
     </Panel>
   );

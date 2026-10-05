@@ -6,7 +6,8 @@ describe("gallery filters", () => {
     expect(buildMediaWhere({ q: "sunset", albumId: "abc", favorite: true, mediaType: "photo" })).toMatchObject({
       albumId: "abc",
       favorite: true,
-      mediaType: "PHOTO"
+      mediaType: "PHOTO",
+      trashedAt: null
     });
   });
 

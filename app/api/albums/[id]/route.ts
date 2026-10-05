@@ -1,19 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, requireCsrfToken } from "@/lib/auth";
+import { requireAdmin, requireCsrfToken, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  await requireUser();
   const { id } = await params;
   const album = await prisma.album.findUnique({
     where: { id },
-    include: { media: { orderBy: { albumOrder: "asc" }, include: { tags: { include: { tag: true } } } } }
+    include: { media: { where: { trashedAt: null }, orderBy: { albumOrder: "asc" }, include: { tags: { include: { tag: true } } } } }
   });
   if (!album) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ album });
+  return NextResponse.json({
+    album: {
+      ...album,
+      media: album.media.map((item) => ({ ...item, size: item.size.toString() }))
+    }
+  });
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin();
+  await requireUser();
   await requireCsrfToken(request);
   const { id } = await params;
   const form = await request.formData();

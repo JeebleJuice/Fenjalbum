@@ -68,6 +68,10 @@ async function runJobLoop() {
 }
 
 async function main() {
+  await prisma.processingJob.updateMany({
+    where: { status: "RUNNING", updatedAt: { lt: new Date(Date.now() - 30 * 60 * 1000) } },
+    data: { status: "PENDING", runAfter: new Date(), lastError: "Recovered after interrupted worker" }
+  });
   process.on("SIGINT", () => {
     stopped = true;
   });
@@ -75,14 +79,12 @@ async function main() {
     stopped = true;
   });
 
-  // eslint-disable-next-line no-console
   console.log(`Fenjalbum worker polling every ${POLL_INTERVAL_MS}ms`);
   await runJobLoop();
   await prisma.$disconnect();
 }
 
 main().catch(async (error) => {
-  // eslint-disable-next-line no-console
   console.error(error);
   await prisma.$disconnect();
   process.exit(1);

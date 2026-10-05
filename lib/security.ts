@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { createReadStream } from "node:fs";
 import sanitize from "sanitize-filename";
 import { env } from "@/lib/env";
 
@@ -13,6 +14,12 @@ export function normalizeFileName(input: string) {
 
 export function sha256(buffer: Buffer | string) {
   return crypto.createHash("sha256").update(buffer).digest("hex");
+}
+
+export async function sha256File(filePath: string) {
+  const hash = crypto.createHash("sha256");
+  for await (const chunk of createReadStream(filePath)) hash.update(chunk as Buffer);
+  return hash.digest("hex");
 }
 
 export function newToken(bytes = 32) {

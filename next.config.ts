@@ -5,7 +5,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   experimental: {
-    webpackBuildWorker: false
+    webpackBuildWorker: false,
+    useTypeScriptCli: false
   },
   images: {
     unoptimized: true

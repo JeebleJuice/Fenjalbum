@@ -16,13 +16,13 @@ export default async function MediaPage({
   if (!user) notFound();
   const { id } = await params;
   const { returnTo = "/" } = await searchParams;
-  const current = await prisma.media.findUnique({
-    where: { id },
+  const current = await prisma.media.findFirst({
+    where: { id, trashedAt: null },
     include: { album: true, tags: { include: { tag: true } } }
   });
   if (!current) notFound();
   const albums = await prisma.album.findMany({ orderBy: { sortOrder: "asc" } });
-  const ordered = await prisma.media.findMany({ orderBy: [{ uploadedAt: "desc" }, { id: "desc" }] });
+  const ordered = await prisma.media.findMany({ where: { trashedAt: null }, orderBy: [{ uploadedAt: "desc" }, { id: "desc" }] });
   const index = ordered.findIndex((media) => media.id === id);
   const prevId = index > 0 ? ordered[index - 1]?.id ?? null : null;
   const nextId = index >= 0 && index < ordered.length - 1 ? ordered[index + 1]?.id ?? null : null;
@@ -45,7 +45,7 @@ export default async function MediaPage({
         albumId: current.albumId,
         albumTitle: current.album?.title ?? null,
         tags: current.tags.map((relation) => relation.tag.name),
-        src: `/api/media/${current.id}`,
+        src: `/api/media/${current.id}${current.playbackPath ? "?variant=playback" : ""}`,
         posterSrc: current.posterPath ? `/api/media/${current.id}?variant=poster` : null,
         returnTo,
         prevId,

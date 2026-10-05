@@ -26,13 +26,13 @@ export default async function UploadPage({
               {album ? `Upload into ${album.title}` : "Drop files, then jump straight back to the gallery."}
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-[hsl(var(--fg))]/65">
-              Images and videos are uploaded privately, processed in the background, and shown in the gallery as soon as they land.
+              Select as many items as your phone provides, or import an entire folder from a computer. Fenjalbum queues every selected file, detects duplicates, and processes it in the background.
             </p>
           </div>
           <div className="grid gap-3 rounded-[1.5rem] border border-[hsl(var(--border))] bg-[linear-gradient(135deg,hsl(var(--fg))/0.04,transparent)] p-4">
             <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
-              <div className="text-xs uppercase tracking-wide text-[hsl(var(--fg))]/55">Button</div>
-              <div className="mt-1 text-sm text-[hsl(var(--fg))]/65">Choose files opens the file picker.</div>
+              <div className="text-xs uppercase tracking-wide text-[hsl(var(--fg))]/55">Bulk upload</div>
+              <div className="mt-1 text-sm text-[hsl(var(--fg))]/65">Everything selected is uploaded. Folder import is available on supporting desktop browsers.</div>
             </div>
             <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
               <div className="text-xs uppercase tracking-wide text-[hsl(var(--fg))]/55">Clear list</div>

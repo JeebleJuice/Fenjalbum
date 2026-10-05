@@ -12,7 +12,7 @@ export default async function FavoritesPage() {
   const user = await getCurrentUser();
   if (!user) notFound();
   const media = await prisma.media.findMany({
-    where: { favorite: true },
+    where: { favorite: true, trashedAt: null },
     include: { album: true },
     orderBy: [{ uploadedAt: "desc" }]
   });

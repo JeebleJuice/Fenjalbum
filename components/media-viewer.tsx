@@ -30,6 +30,13 @@ export type ViewerItem = {
   admin: boolean;
 };
 
+function localDateTimeValue(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
 export function MediaViewer({
   item,
   albums
@@ -83,7 +90,7 @@ export function MediaViewer({
   }
 
   async function deleteMedia() {
-    if (!confirm("Delete this media item permanently?")) return;
+    if (!confirm("Move this item to trash? You can restore it from Admin.")) return;
     const response = await fetch(`/api/media/${item.id}`, {
       method: "DELETE",
       headers: { "x-csrf-token": document.cookie.match(/fenjalbum_csrf=([^;]+)/)?.[1] ?? "" }
@@ -92,6 +99,7 @@ export function MediaViewer({
   }
 
   const currentSrc = item.mediaType === "VIDEO" ? item.src : item.src;
+  const downloadSrc = `/api/media/${item.id}?download=1`;
 
   return (
     <div className="fixed inset-0 z-50 bg-[hsl(var(--bg))]">
@@ -113,7 +121,7 @@ export function MediaViewer({
             <Heart className={favorite ? "h-4 w-4 fill-current" : "h-4 w-4"} />
           </Button>
           <Button variant="secondary" asChild>
-            <a href={`${item.src}&download=1`} download>
+            <a href={downloadSrc} download>
               <Download className="h-4 w-4" />
             </a>
           </Button>
@@ -211,7 +219,10 @@ export function MediaViewer({
               >
                 <Input name="title" defaultValue={item.title ?? ""} placeholder="Title" />
                 <Textarea name="description" defaultValue={item.description ?? ""} placeholder="Description" />
-                <Input name="captureAt" defaultValue={item.captureAt ?? ""} placeholder="2026-07-10T12:00:00Z" />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="captureAt">Capture date</label>
+                  <Input id="captureAt" name="captureAt" type="datetime-local" defaultValue={localDateTimeValue(item.captureAt)} />
+                </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Album</label>
                   <Select name="albumId" defaultValue={item.albumId ?? ""}>

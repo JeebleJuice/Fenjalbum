@@ -4,7 +4,7 @@ import { Readable } from "node:stream";
 import path from "node:path";
 import { prisma } from "@/lib/db";
 import { parseRangeHeader } from "@/lib/range";
-import { requireAdmin, requireCsrfToken } from "@/lib/auth";
+import { requireAdmin, requireCsrfToken, requireUser } from "@/lib/auth";
 import { deleteMediaFiles } from "@/lib/media-processing";
 
 export const runtime = "nodejs";
@@ -30,15 +30,15 @@ function responseForFile(filePath: string, contentType: string, download = false
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  await requireUser();
   const { id } = await params;
   const media = await prisma.media.findUnique({ where: { id } });
   if (!media) return new Response("Not found", { status: 404 });
   const variant = request.nextUrl.searchParams.get("variant") ?? "original";
   const download = request.nextUrl.searchParams.get("download") === "1";
-  const filePath =
-    variant === "thumb" ? media.thumbPath : variant === "poster" ? media.posterPath ?? media.thumbPath : media.storagePath;
+  const filePath = variant === "thumb" ? media.thumbPath : variant === "poster" ? media.posterPath ?? media.thumbPath : variant === "playback" ? media.playbackPath ?? media.storagePath : media.storagePath;
   if (!filePath) return new Response("Not found", { status: 404 });
-  const contentType = variant === "thumb" || variant === "poster" ? "image/jpeg" : media.mimeType;
+  const contentType = variant === "thumb" || variant === "poster" ? "image/jpeg" : variant === "playback" && media.playbackPath ? "video/mp4" : media.mimeType;
   return responseForFile(filePath, contentType, download, request.headers.get("range"));
 }
 
@@ -46,7 +46,19 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   await requireAdmin();
   await requireCsrfToken(request);
   const { id } = await params;
+  if (request.nextUrl.searchParams.get("permanent") !== "1") {
+    await prisma.media.update({ where: { id }, data: { trashedAt: new Date() } });
+    return Response.json({ ok: true, trashed: true });
+  }
   await deleteMediaFiles(id);
   await prisma.media.delete({ where: { id } });
+  return Response.json({ ok: true });
+}
+
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  await requireAdmin();
+  await requireCsrfToken(request);
+  const { id } = await params;
+  await prisma.media.update({ where: { id }, data: { trashedAt: null } });
   return Response.json({ ok: true });
 }

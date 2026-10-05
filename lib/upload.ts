@@ -2,16 +2,17 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { MediaType } from "@prisma/client";
-import { fileTypeFromBuffer } from "file-type";
 import sanitize from "sanitize-filename";
 import { prisma } from "@/lib/db";
 import { ensureStorageRoots, mediaOriginalPath } from "@/lib/storage";
-import { sha256 } from "@/lib/security";
+import { sha256File } from "@/lib/security";
+import { fileTypeFromPath } from "@/lib/file-signature";
 
 export type UploadedTempFile = {
   tmpPath: string;
   originalFilename: string;
   receivedSize: number;
+  albumId?: string | null;
 };
 
 const allowedMimes = new Set([
@@ -19,6 +20,8 @@ const allowedMimes = new Set([
   "image/png",
   "image/webp",
   "image/avif",
+  "image/heic",
+  "image/heif",
   "video/mp4",
   "video/webm",
   "video/quicktime",
@@ -26,7 +29,7 @@ const allowedMimes = new Set([
 ]);
 
 export async function validateUploadedFile(filePath: string) {
-  const type = await fileTypeFromBuffer(await fs.readFile(filePath));
+  const type = await fileTypeFromPath(filePath);
   if (!type || !allowedMimes.has(type.mime)) {
     throw new Error("Unsupported file type");
   }
@@ -54,7 +57,7 @@ async function moveFile(source: string, destination: string) {
 export async function importUploadedFile(file: UploadedTempFile) {
   await ensureStorageRoots();
   const type = await validateUploadedFile(file.tmpPath);
-  const hash = sha256(await fs.readFile(file.tmpPath));
+  const hash = await sha256File(file.tmpPath);
   const duplicate = await prisma.media.findUnique({ where: { hash } });
   if (duplicate) {
     await fs.unlink(file.tmpPath).catch(() => undefined);
@@ -68,19 +71,30 @@ export async function importUploadedFile(file: UploadedTempFile) {
   await moveFile(file.tmpPath, finalPath);
 
   const mediaType: MediaType = type.mime.startsWith("image/") ? "PHOTO" : "VIDEO";
-  const media = await prisma.media.create({
-    data: {
-      id,
-      originalFilename: file.originalFilename,
-      safeFilename,
-      mediaType,
-      mimeType: type.mime,
-      size: BigInt(file.receivedSize),
-      hash,
-      storagePath: finalPath,
-      processingStatus: "PENDING"
-    }
-  });
+  let media;
+  try {
+    media = await prisma.$transaction(async (transaction) => {
+      const created = await transaction.media.create({
+        data: {
+          id,
+          originalFilename: file.originalFilename,
+          safeFilename,
+          mediaType,
+          mimeType: type.mime,
+          size: BigInt(file.receivedSize),
+          hash,
+          storagePath: finalPath,
+          albumId: file.albumId || null,
+          processingStatus: "PENDING"
+        }
+      });
+      await transaction.processingJob.create({ data: { mediaId: created.id, kind: "METADATA" } });
+      return created;
+    });
+  } catch (error) {
+    await fs.rm(path.dirname(finalPath), { recursive: true, force: true });
+    throw error;
+  }
 
   return { duplicate: false as const, media };
 }

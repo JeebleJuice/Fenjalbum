@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/logout", "/api/auth/csrf", "/api/health"];
-const STATIC_PREFIXES = ["/_next", "/favicon.ico", "/robots.txt", "/sitemap.xml"];
+const STATIC_PREFIXES = ["/_next", "/favicon.ico", "/robots.txt", "/sitemap.xml", "/manifest.webmanifest", "/icons", "/sw.js"];
 
 function isProtected(pathname: string) {
   if (STATIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false;
@@ -20,46 +20,23 @@ async function hasValidToken(request: NextRequest) {
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const responseHeaders = new Headers();
   responseHeaders.set("X-Frame-Options", "DENY");
   responseHeaders.set("X-Content-Type-Options", "nosniff");
   responseHeaders.set("Referrer-Policy", "same-origin");
   responseHeaders.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  responseHeaders.set(
-    "Content-Security-Policy",
-    [
-      "default-src 'self'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-      "img-src 'self' data: blob:",
-      "media-src 'self' blob:",
-      "style-src 'self' 'unsafe-inline'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "connect-src 'self'",
-      "font-src 'self' data:"
-    ].join("; ")
-  );
+  responseHeaders.set("Content-Security-Policy", ["default-src 'self'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'", "img-src 'self' data: blob:", "media-src 'self' blob:", "style-src 'self' 'unsafe-inline'", "script-src 'self' 'unsafe-inline' 'unsafe-eval'", "connect-src 'self'", "font-src 'self' data:"].join("; "));
 
-  if (!isProtected(pathname)) {
-    return NextResponse.next({ headers: responseHeaders });
-  }
-
-  const authenticated = await hasValidToken(request);
-  if (!authenticated) {
-    if (pathname.startsWith("/api")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: responseHeaders });
-    }
+  if (!isProtected(pathname)) return NextResponse.next({ headers: responseHeaders });
+  if (!(await hasValidToken(request))) {
+    if (pathname.startsWith("/api")) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: responseHeaders });
     const url = new URL("/login", request.url);
     if (pathname !== "/") url.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(url);
   }
-
   return NextResponse.next({ headers: responseHeaders });
 }
 
-export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"]
-};
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };

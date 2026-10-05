@@ -84,13 +84,17 @@ model Media {
   height           Int?
   duration         Float?
   captureAt        DateTime?
+  latitude         Float?
+  longitude        Float?
   uploadedAt       DateTime           @default(now())
+  trashedAt        DateTime?
   favorite         Boolean            @default(false)
   orientation      Int?
   hash             String             @unique
   storagePath      String
   thumbPath        String?
   posterPath       String?
+  playbackPath     String?
   metadata         Json?
   processingStatus ProcessingStatus    @default(PENDING)
   processingError  String?
@@ -106,6 +110,7 @@ model Media {
   @@index([uploadedAt])
   @@index([albumId, albumOrder])
   @@index([processingStatus])
+  @@index([trashedAt])
 }
 
 model Tag {

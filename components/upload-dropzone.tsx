@@ -5,14 +5,16 @@ import { useRouter } from "next/navigation";
 import { UploadCloud, RotateCcw } from "lucide-react";
 import { Button, Panel } from "@/components/ui";
 
-type UploadStatus = { name: string; status: "pending" | "uploading" | "done" | "duplicate" | "error"; message?: string };
+type UploadStatus = { id: string; name: string; status: "pending" | "uploading" | "done" | "duplicate" | "error"; message?: string };
 
 export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null; returnTo?: string | null }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const folderRef = useRef<HTMLInputElement | null>(null);
   const [items, setItems] = useState<UploadStatus[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [csrf, setCsrf] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -30,11 +32,20 @@ export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null;
   }, []);
 
   async function sendFiles(files: FileList | File[]) {
-    const uploadList = Array.from(files).map((file) => ({ name: file.name, status: "pending" as const }));
+    if (isUploading) return;
+    const selectedFiles = Array.from(files);
+    if (selectedFiles.length === 0) return;
+    const uploadList = selectedFiles.map((file, index) => ({ id: `${index}-${file.name}-${file.lastModified}`, name: file.name, status: "pending" as const }));
     setItems(uploadList);
+    setIsUploading(true);
     let hadError = false;
-    for (let index = 0; index < files.length; index += 1) {
-      const file = files[index];
+    let cursor = 0;
+
+    async function uploadNext() {
+      while (cursor < selectedFiles.length) {
+        const index = cursor;
+        cursor += 1;
+        const file = selectedFiles[index];
       setItems((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, status: "uploading" } : item)));
       try {
         let token = csrf;
@@ -81,7 +92,10 @@ export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null;
         hadError = true;
         setItems((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, status: "error", message: "Network error" } : item)));
       }
+      }
     }
+    await Promise.all(Array.from({ length: Math.min(3, selectedFiles.length) }, () => uploadNext()));
+    setIsUploading(false);
     if (!hadError) {
       if (returnTo) {
         router.replace(returnTo);
@@ -91,6 +105,9 @@ export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null;
       router.refresh();
     }
   }
+
+  const completed = items.filter((item) => item.status === "done" || item.status === "duplicate" || item.status === "error").length;
+  const progress = items.length > 0 ? Math.round((completed / items.length) * 100) : 0;
 
   return (
     <Panel
@@ -112,13 +129,14 @@ export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null;
         </div>
         <div>
           <h2 className="text-lg font-semibold">Drop files here</h2>
-          <p className="text-sm text-[hsl(var(--fg))]/60">Images and videos upload privately to your library.</p>
+          <p className="text-sm text-[hsl(var(--fg))]/60">Every selected photo and video is queued automatically—there is no Fenjalbum selection limit.</p>
         </div>
-        <div className="flex gap-3">
-          <Button type="button" onClick={() => inputRef.current?.click()}>
-            Choose files
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button type="button" disabled={isUploading} onClick={() => inputRef.current?.click()}>
+            Choose photos and videos
           </Button>
-          <Button type="button" variant="secondary" onClick={() => setItems([])}>
+          <Button type="button" disabled={isUploading} variant="secondary" onClick={() => folderRef.current?.click()}>Choose entire folder</Button>
+          <Button type="button" disabled={isUploading} variant="secondary" onClick={() => setItems([])}>
             <RotateCcw className="h-4 w-4" />
             Clear list
           </Button>
@@ -131,13 +149,25 @@ export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null;
           accept="image/*,video/*"
           className="hidden"
           onChange={(event) => {
-            if (event.target.files) sendFiles(event.target.files);
+            if (event.target.files) void sendFiles(event.target.files);
+            event.target.value = "";
           }}
+        />
+        <input
+          ref={(node) => { folderRef.current = node; if (node) { node.setAttribute("webkitdirectory", ""); node.setAttribute("directory", ""); } }}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(event) => { if (event.target.files) void sendFiles(event.target.files); event.target.value = ""; }}
         />
         {items.length > 0 ? (
           <div className="mt-4 w-full space-y-2 text-left">
-            {items.map((item) => (
-              <div key={item.name} className="flex items-center justify-between rounded-2xl border border-[hsl(var(--border))] px-4 py-3 text-sm">
+            <div className="space-y-2 rounded-2xl bg-[hsl(var(--muted))] p-4">
+              <div className="flex items-center justify-between text-sm"><span>{completed} of {items.length} finished</span><span>{progress}%</span></div>
+              <div className="h-2 overflow-hidden rounded-full bg-[hsl(var(--card))]"><div className="h-full rounded-full bg-[hsl(var(--accent))] transition-[width]" style={{ width: `${progress}%` }} /></div>
+            </div>
+            {items.slice(0, 100).map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-4 rounded-2xl border border-[hsl(var(--border))] px-4 py-3 text-sm">
                 <span className="truncate">{item.name}</span>
                 <span className="text-xs uppercase tracking-wide text-[hsl(var(--fg))]/60">
                   {item.status}
@@ -145,6 +175,7 @@ export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null;
                 </span>
               </div>
             ))}
+            {items.length > 100 ? <p className="text-center text-xs text-[hsl(var(--fg))]/55">Showing the first 100 files; all {items.length} files remain queued.</p> : null}
           </div>
         ) : null}
       </div>

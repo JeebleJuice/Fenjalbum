@@ -2,12 +2,7 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: fenjalbum
-      POSTGRES_USER: fenjalbum
-      POSTGRES_PASSWORD: fenjalbum
-    ports:
-      - "5432:5432"
+    env_file: ${APP_ENV_FILE:-.env.production}
     volumes:
       - fenjalbum_db:/var/lib/postgresql/data
     healthcheck:
@@ -18,34 +13,21 @@ services:
 
   web:
     build: .
+    image: fenjalbum-app
+    init: true
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+    env_file: ${APP_ENV_FILE:-.env.production}
     ports:
-      - "3000:3000"
-    environment:
-      APP_URL: ${APP_URL:-http://localhost:3000}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://fenjalbum:fenjalbum@db:5432/fenjalbum?schema=public}
-      SESSION_SECRET: ${SESSION_SECRET:-change-me}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me}
-      ADMIN_NAME: ${ADMIN_NAME:-Administrator}
-      MEDIA_ROOT: /data/media
-      THUMB_ROOT: /data/thumbs
-      POSTER_ROOT: /data/posters
-      UPLOAD_TMP_ROOT: /data/tmp
-      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-1024}
-      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
-      RATE_LIMIT_LOGIN_MAX: ${RATE_LIMIT_LOGIN_MAX:-10}
-      RATE_LIMIT_UPLOAD_MAX: ${RATE_LIMIT_UPLOAD_MAX:-20}
-      TRUST_PROXY: ${TRUST_PROXY:-false}
-      SEED_DEMO: ${SEED_DEMO:-false}
+      - "${FENJALBUM_BIND_ADDRESS:-127.0.0.1}:${FENJALBUM_PORT:-3300}:3000"
     volumes:
-      - fenjalbum_media:/data/media
-      - fenjalbum_thumbs:/data/thumbs
-      - fenjalbum_posters:/data/posters
-      - fenjalbum_tmp:/data/tmp
+      - ${FENJALBUM_STORAGE_ROOT:-./storage}/media:/data/media
+      - ${FENJALBUM_STORAGE_ROOT:-./storage}/thumbs:/data/thumbs
+      - ${FENJALBUM_STORAGE_ROOT:-./storage}/posters:/data/posters
+      - ${FENJALBUM_STORAGE_ROOT:-./storage}/tmp:/data/tmp
+      - ${FENJALBUM_IMPORT_ROOT:-./import}:/import:ro
     command: sh -lc "npx prisma migrate deploy && npm run start"
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
@@ -55,34 +37,21 @@ services:
 
   worker:
     build: .
+    image: fenjalbum-app
+    init: true
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
       web:
         condition: service_healthy
-    environment:
-      APP_URL: ${APP_URL:-http://localhost:3000}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://fenjalbum:fenjalbum@db:5432/fenjalbum?schema=public}
-      SESSION_SECRET: ${SESSION_SECRET:-change-me}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me}
-      ADMIN_NAME: ${ADMIN_NAME:-Administrator}
-      MEDIA_ROOT: /data/media
-      THUMB_ROOT: /data/thumbs
-      POSTER_ROOT: /data/posters
-      UPLOAD_TMP_ROOT: /data/tmp
-      SEED_DEMO: ${SEED_DEMO:-false}
+    env_file: ${APP_ENV_FILE:-.env.production}
     volumes:
-      - fenjalbum_media:/data/media
-      - fenjalbum_thumbs:/data/thumbs
-      - fenjalbum_posters:/data/posters
-      - fenjalbum_tmp:/data/tmp
+      - ${FENJALBUM_STORAGE_ROOT:-./storage}/media:/data/media
+      - ${FENJALBUM_STORAGE_ROOT:-./storage}/thumbs:/data/thumbs
+      - ${FENJALBUM_STORAGE_ROOT:-./storage}/posters:/data/posters
+      - ${FENJALBUM_STORAGE_ROOT:-./storage}/tmp:/data/tmp
     command: sh -lc "npx prisma migrate deploy && npm run worker"
 
 volumes:
   fenjalbum_db:
-  fenjalbum_media:
-  fenjalbum_thumbs:
-  fenjalbum_posters:
-  fenjalbum_tmp:

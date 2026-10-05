@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, requireCsrfToken } from "@/lib/auth";
+import { requireUser, requireCsrfToken } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin();
+  await requireUser();
   await requireCsrfToken(request);
   const { id } = await params;
   const form = await request.formData();
@@ -17,6 +17,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .split(",")
     .map((tag) => tag.trim().toLowerCase())
     .filter(Boolean);
+
+  const captureAt = captureAtRaw ? new Date(captureAtRaw) : null;
+  if (captureAt && Number.isNaN(captureAt.getTime())) {
+    return NextResponse.json({ error: "Capture date is not valid." }, { status: 400 });
+  }
+  const albumOrder = albumOrderRaw ? Number(albumOrderRaw) : undefined;
+  if (albumOrder !== undefined && !Number.isFinite(albumOrder)) {
+    return NextResponse.json({ error: "Album order must be a number." }, { status: 400 });
+  }
 
   const tagRows = await Promise.all(
     tagList.map((name) =>
@@ -34,10 +43,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       data: {
         title,
         description,
-        captureAt: captureAtRaw ? new Date(captureAtRaw) : null,
+        captureAt,
         albumId,
         favorite,
-        albumOrder: albumOrderRaw ? Number(albumOrderRaw) : undefined
+        albumOrder
       }
     });
     await tx.mediaTag.deleteMany({ where: { mediaId: id } });
@@ -49,5 +58,5 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return updated;
   });
 
-  return NextResponse.json({ ok: true, media });
+  return NextResponse.json({ ok: true, id: media.id });
 }

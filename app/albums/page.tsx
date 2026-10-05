@@ -13,7 +13,7 @@ export default async function AlbumsPage() {
   if (!user) return null;
   const albums = await prisma.album.findMany({
     orderBy: { sortOrder: "asc" },
-    include: { media: true }
+    include: { media: { where: { trashedAt: null } } }
   });
   return (
     <AppShell user={user}>

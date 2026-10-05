@@ -11,7 +11,7 @@ export type GalleryFilters = {
 };
 
 export function buildMediaWhere(filters: GalleryFilters): Prisma.MediaWhereInput {
-  const where: Prisma.MediaWhereInput = {};
+  const where: Prisma.MediaWhereInput = { trashedAt: null };
   if (filters.q) {
     where.OR = [
       { originalFilename: { contains: filters.q, mode: "insensitive" } },

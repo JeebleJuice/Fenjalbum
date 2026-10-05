@@ -27,12 +27,12 @@ export default async function AlbumPage({
 
   const album = await prisma.album.findUnique({
     where: { id },
-    include: { media: { orderBy: [{ albumOrder: "asc" }, { uploadedAt: "desc" }], include: { album: true } } }
+    include: { media: { where: { trashedAt: null }, orderBy: [{ albumOrder: "asc" }, { uploadedAt: "desc" }], include: { album: true } } }
   });
   if (!album) notFound();
 
   const availableMedia = await prisma.media.findMany({
-    where: { id: { notIn: album.media.map((media) => media.id) } },
+    where: { id: { notIn: album.media.map((media) => media.id) }, trashedAt: null },
     include: { album: true },
     orderBy: [{ uploadedAt: "desc" }],
     take: 24

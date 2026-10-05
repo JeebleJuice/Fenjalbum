@@ -71,7 +71,8 @@ export async function ensureCsrfCookie() {
       httpOnly: false,
       sameSite: "lax",
       secure: env.APP_URL.startsWith("https://"),
-      path: "/"
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7
     });
   }
   return value;
