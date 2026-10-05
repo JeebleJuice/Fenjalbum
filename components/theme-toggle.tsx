@@ -20,7 +20,10 @@ export function ThemeToggle() {
 
   function toggle() {
     const next = !dark;
-    document.documentElement.classList.toggle("dark", next);
+    const root = document.documentElement;
+    root.classList.toggle("dark", next);
+    root.classList.toggle("light", !next);
+    root.style.colorScheme = next ? "dark" : "light";
     localStorage.setItem("fenjalbum-theme", next ? "dark" : "light");
     window.dispatchEvent(new Event(themeEvent));
   }
