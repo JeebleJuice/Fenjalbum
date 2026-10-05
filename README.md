@@ -220,6 +220,9 @@ Threat model:
 - Filenames are normalized and path traversal is blocked.
 - Uploads are restricted by MIME signature and file type validation.
 - Login and upload endpoints are rate limited.
+- The upload endpoint performs its own session, CSRF, and rate-limit checks and
+  intentionally bypasses Next.js Proxy so large videos stream to temporary
+  storage instead of being truncated by Proxy's request-body buffer.
 
 Limitations:
 

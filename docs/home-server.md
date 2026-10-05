@@ -34,6 +34,12 @@ npm run worker
 
 The worker turns uploaded items from **Pending** into **Ready**. Restart it after changing worker or media-processing code. Stop either process with `Ctrl+C`; stop PostgreSQL without deleting its data with `npm run db:dev:stop`.
 
+Photo and video uploads stream through `/api/upload`. That route deliberately
+bypasses Next.js Proxy body cloning while still enforcing its own authenticated
+session, CSRF token, rate limit, MIME-signature validation, and configured
+`MAX_UPLOAD_MB` file limit. This is required for videos larger than Proxy's
+default 10 MB request-body buffer.
+
 Before pushing changes:
 
 ```bash
