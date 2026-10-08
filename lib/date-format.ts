@@ -20,3 +20,7 @@ export function formatDisplayDateTime(value: DateValue) {
   if (!date) return "Unknown";
   return `${formatDisplayDate(date)} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+
+export function formatCaptureDate(value: DateValue | null | undefined) {
+  return value === null || value === undefined ? "Capture date unknown" : formatDisplayDate(value);
+}

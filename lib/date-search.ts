@@ -50,10 +50,10 @@ export function parseDateSearch(value: string): DateBounds | null {
 }
 
 export function explicitDateBounds(fromValue?: string, toValue?: string): Partial<DateBounds> {
-  const from = fromValue ? parseCalendarDate(fromValue) : null;
-  const to = toValue ? parseCalendarDate(toValue) : null;
+  const from = fromValue ? parseSearchToken(fromValue) : null;
+  const to = toValue ? parseSearchToken(toValue) : null;
   return {
-    ...(from ? { from: startOfDay(from) } : {}),
-    ...(to ? { to: endOfDay(to) } : {})
+    ...(from ? { from: from.from } : {}),
+    ...(to ? { to: to.to } : {})
   };
 }

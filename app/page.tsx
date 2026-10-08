@@ -9,7 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui";
-import { formatDisplayDate } from "@/lib/date-format";
+import { formatCaptureDate } from "@/lib/date-format";
 
 function previewSrc(media: { id: string; mediaType: "PHOTO" | "VIDEO"; thumbPath: string | null; posterPath: string | null }) {
   if (media.thumbPath) return `/api/media/${media.id}?variant=thumb`;
@@ -52,7 +52,7 @@ export default async function DiscoverPage() {
         },
         _count: { select: { memberships: true } }
       },
-      take: 5
+      take: 2
     }),
     prisma.media.count({ where: { trashedAt: null } }),
     prisma.album.count(),
@@ -130,7 +130,7 @@ export default async function DiscoverPage() {
                   {src ? <img src={src} alt={media.title ?? media.originalFilename} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
                   {media.mediaType === "VIDEO" ? <Film className="absolute right-2 top-2 h-4 w-4 text-white drop-shadow" /> : null}
-                  <div className="absolute inset-x-0 bottom-0 p-2 text-white"><div className="truncate text-xs font-medium">{media.title ?? media.originalFilename}</div><div className="text-[10px] text-white/65">{formatDisplayDate(media.captureAt ?? media.uploadedAt)}</div></div>
+                  <div className="absolute inset-x-0 bottom-0 p-2 text-white"><div className="truncate text-xs font-medium">{media.title ?? media.originalFilename}</div><div className="text-[10px] text-white/65">{formatCaptureDate(media.captureAt)}</div></div>
                 </Link>
               );
             })}

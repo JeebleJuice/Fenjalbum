@@ -81,7 +81,7 @@ export default async function LibraryPage({
         <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Every memory, easy to find.</h1>
-            <p className="mt-1 text-sm text-[hsl(var(--fg))]/60">Search text, album names, or dates such as 21/03/2026 - 25/4/2026.</p>
+            <p className="mt-1 text-sm text-[hsl(var(--fg))]/60">Search names, tags, and albums, then narrow the results with the filters.</p>
           </div>
           <span className="text-sm text-[hsl(var(--fg))]/55">{data.total} items</span>
         </div>

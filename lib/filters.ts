@@ -1,5 +1,4 @@
 import { Prisma } from "@prisma/client";
-import { parseDateSearch } from "@/lib/date-search";
 
 export type GalleryFilters = {
   q?: string;
@@ -15,8 +14,7 @@ export type GalleryFilters = {
 
 export function buildMediaWhere(filters: GalleryFilters): Prisma.MediaWhereInput {
   const where: Prisma.MediaWhereInput = { trashedAt: null };
-  const dateSearch = filters.q ? parseDateSearch(filters.q) : null;
-  if (filters.q && !dateSearch) {
+  if (filters.q) {
     where.OR = [
       { originalFilename: { contains: filters.q, mode: "insensitive" } },
       { title: { contains: filters.q, mode: "insensitive" } },
@@ -25,8 +23,8 @@ export function buildMediaWhere(filters: GalleryFilters): Prisma.MediaWhereInput
       { albums: { some: { album: { title: { contains: filters.q, mode: "insensitive" } } } } }
     ];
   }
-  const captureFrom = filters.captureFrom ?? dateSearch?.from;
-  const captureTo = filters.captureTo ?? dateSearch?.to;
+  const captureFrom = filters.captureFrom;
+  const captureTo = filters.captureTo;
   if (captureFrom || captureTo) {
     where.captureAt = {
       ...(captureFrom ? { gte: captureFrom } : {}),

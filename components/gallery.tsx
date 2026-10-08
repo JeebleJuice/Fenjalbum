@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { CalendarDays, Film, Heart, Image as ImageIcon, Loader2, Sparkles } from "lucide-react";
 import { Badge, Panel } from "@/components/ui";
-import { formatDisplayDate } from "@/lib/date-format";
+import { formatCaptureDate } from "@/lib/date-format";
 
 export type GalleryItem = {
   id: string;
@@ -81,7 +81,7 @@ export function MediaGrid({
               <h3 className="truncate text-[11px] font-semibold leading-tight">{item.title ?? item.originalFilename}</h3>
               <div className="flex items-center justify-between gap-2 text-[9px] text-[hsl(var(--fg))]/60">
                 <span className="truncate">{item.albumTitle ?? "No Album"}</span>
-                <span>{formatDisplayDate(item.captureAt ?? item.uploadedAt)}</span>
+                <span>{formatCaptureDate(item.captureAt)}</span>
               </div>
             </div>
           </Link>
@@ -119,7 +119,7 @@ export function MediaGrid({
               <h3 className="truncate text-sm font-semibold">{item.title ?? item.originalFilename}</h3>
               <div className="flex items-center justify-between gap-2 text-[11px] text-[hsl(var(--fg))]/60">
                 <span className="truncate">{item.albumTitle ?? "No Album"}</span>
-                <span>{formatDisplayDate(item.captureAt ?? item.uploadedAt)}</span>
+                <span>{formatCaptureDate(item.captureAt)}</span>
               </div>
             </div>
           </Link>
@@ -194,7 +194,7 @@ export function MediaGrid({
               <div className="flex items-center gap-3 text-xs text-[hsl(var(--fg))]/60">
                 <span className="inline-flex items-center gap-1">
                   <CalendarDays className="h-3.5 w-3.5" />
-                  {formatDisplayDate(item.captureAt ?? item.uploadedAt)}
+                  {formatCaptureDate(item.captureAt)}
                 </span>
                 {item.duration ? <span>{Math.round(item.duration)}s</span> : item.width && item.height ? <span>{item.width}×{item.height}</span> : null}
               </div>

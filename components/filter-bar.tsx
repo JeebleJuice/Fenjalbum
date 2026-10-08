@@ -48,7 +48,7 @@ export function FilterBar({
           <Input
             name="q"
             defaultValue={query.q ?? ""}
-            placeholder="Names, tags, albums, or a date range"
+            placeholder="Search media"
             className="h-11 rounded-full border-transparent bg-[hsl(var(--muted))] pl-12 pr-5 shadow-none focus:border-[hsl(var(--accent))]"
           />
         </label>
@@ -79,11 +79,11 @@ export function FilterBar({
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1.5 text-xs font-medium text-[hsl(var(--fg))]/55">
               <span className="flex items-center gap-2"><CalendarRange className="h-4 w-4" /> Captured from</span>
-              <Input type="date" name="dateFrom" defaultValue={query.dateFrom ?? ""} />
+              <Input type="text" inputMode="numeric" name="dateFrom" defaultValue={query.dateFrom ?? ""} placeholder="dd/mm/yyyy or yyyy" aria-label="Captured from, day month year" />
             </label>
             <label className="space-y-1.5 text-xs font-medium text-[hsl(var(--fg))]/55">
               <span className="flex items-center gap-2"><CalendarRange className="h-4 w-4" /> Captured through</span>
-              <Input type="date" name="dateTo" defaultValue={query.dateTo ?? ""} />
+              <Input type="text" inputMode="numeric" name="dateTo" defaultValue={query.dateTo ?? ""} placeholder="dd/mm/yyyy or yyyy" aria-label="Captured through, day month year" />
             </label>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">

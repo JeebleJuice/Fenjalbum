@@ -6,7 +6,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarRange, Check, ChevronLeft, ChevronRight, Loader2, Plus, Search } from "lucide-react";
 import { Badge, Button, Input, Panel, Select } from "@/components/ui";
-import { formatDisplayDate } from "@/lib/date-format";
+import { formatCaptureDate } from "@/lib/date-format";
 import { paginationItems } from "@/lib/pagination";
 
 type PickerItem = {
@@ -207,7 +207,7 @@ export function AlbumMediaPicker({ albumId, albumTitle }: { albumId: string; alb
           <label className="relative min-w-0 flex-1">
             <span className="sr-only">Search existing media</span>
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--fg))]/45" />
-            <Input value={filters.q} onChange={(event) => setFilters((current) => ({ ...current, q: event.target.value }))} placeholder="Search 2025, 21/03/2026, or 21/03/2026 - 25/03/2026" className="pl-10" />
+            <Input value={filters.q} onChange={(event) => setFilters((current) => ({ ...current, q: event.target.value }))} placeholder="Search media" className="pl-10" />
           </label>
           <Select value={filters.mediaType} onChange={(event) => setFilters((current) => ({ ...current, mediaType: event.target.value }))} className="sm:w-40">
             <option value="all">Photos & videos</option><option value="photo">Photos only</option><option value="video">Videos only</option>
@@ -215,8 +215,8 @@ export function AlbumMediaPicker({ albumId, albumTitle }: { albumId: string; alb
           <Button type="submit" disabled={loadingResults}>{loadingResults ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Search</Button>
         </div>
         <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <label className="space-y-1 text-xs font-medium text-[hsl(var(--fg))]/55"><span className="flex items-center gap-1.5"><CalendarRange className="h-3.5 w-3.5" /> Captured from</span><Input type="date" value={filters.dateFrom} onChange={(event) => setFilters((current) => ({ ...current, dateFrom: event.target.value }))} /></label>
-          <label className="space-y-1 text-xs font-medium text-[hsl(var(--fg))]/55"><span className="flex items-center gap-1.5"><CalendarRange className="h-3.5 w-3.5" /> Captured through</span><Input type="date" value={filters.dateTo} onChange={(event) => setFilters((current) => ({ ...current, dateTo: event.target.value }))} /></label>
+          <label className="space-y-1 text-xs font-medium text-[hsl(var(--fg))]/55"><span className="flex items-center gap-1.5"><CalendarRange className="h-3.5 w-3.5" /> Captured from</span><Input type="text" inputMode="numeric" value={filters.dateFrom} placeholder="dd/mm/yyyy or yyyy" aria-label="Captured from, day month year" onChange={(event) => setFilters((current) => ({ ...current, dateFrom: event.target.value }))} /></label>
+          <label className="space-y-1 text-xs font-medium text-[hsl(var(--fg))]/55"><span className="flex items-center gap-1.5"><CalendarRange className="h-3.5 w-3.5" /> Captured through</span><Input type="text" inputMode="numeric" value={filters.dateTo} placeholder="dd/mm/yyyy or yyyy" aria-label="Captured through, day month year" onChange={(event) => setFilters((current) => ({ ...current, dateTo: event.target.value }))} /></label>
           <Button type="button" variant="secondary" onClick={clearFilters}>Clear</Button>
         </div>
       </form>
@@ -242,7 +242,7 @@ export function AlbumMediaPicker({ albumId, albumTitle }: { albumId: string; alb
                 <Badge className="absolute left-2 top-2 border-white/20 bg-black/60 text-white">{item.mediaType === "PHOTO" ? "Photo" : "Video"}</Badge>
                 <div className={`absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full border ${active ? "border-[hsl(var(--accent))] bg-[hsl(var(--accent))] text-[hsl(var(--accent-fg))]" : "border-white/30 bg-black/40 text-white"}`}>{active ? <Check className="h-4 w-4" /> : null}</div>
               </div>
-              <div className="p-3"><h3 className="truncate text-sm font-semibold">{item.title ?? item.originalFilename}</h3><p className="mt-1 truncate text-xs text-[hsl(var(--fg))]/60">{formatDisplayDate(item.captureAt ?? item.uploadedAt)} · {item.albumTitle ?? "No album"}</p></div>
+              <div className="p-3"><h3 className="truncate text-sm font-semibold">{item.title ?? item.originalFilename}</h3><p className="mt-1 truncate text-xs text-[hsl(var(--fg))]/60">{formatCaptureDate(item.captureAt)} · {item.albumTitle ?? "No album"}</p></div>
             </button>
           );
         }) : <div className="col-span-full rounded-2xl border border-dashed border-[hsl(var(--border))] p-8 text-center text-sm text-[hsl(var(--fg))]/60">No media matches these filters.</div>}
