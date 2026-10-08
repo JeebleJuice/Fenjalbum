@@ -38,7 +38,7 @@ export function PhotoMap({ points }: { points: MapMediaPoint[] }) {
     void import("leaflet").then((L) => {
       if (disposed || !containerRef.current) return;
       map = L.map(containerRef.current, { zoomControl: true, preferCanvas: true });
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      L.tileLayer("/api/map/tiles/{z}/{x}/{y}", {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);

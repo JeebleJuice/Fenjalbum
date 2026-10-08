@@ -69,8 +69,8 @@ async function runJobLoop() {
 
 async function main() {
   await prisma.processingJob.updateMany({
-    where: { status: "RUNNING", updatedAt: { lt: new Date(Date.now() - 30 * 60 * 1000) } },
-    data: { status: "PENDING", runAfter: new Date(), lastError: "Recovered after interrupted worker" }
+    where: { status: "RUNNING" },
+    data: { status: "PENDING", runAfter: new Date(), lastError: "Recovered after worker restart" }
   });
   process.on("SIGINT", () => {
     stopped = true;

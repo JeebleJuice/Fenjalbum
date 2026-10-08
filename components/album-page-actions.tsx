@@ -6,25 +6,12 @@ import { X } from "lucide-react";
 import { AlbumMediaPicker } from "@/components/album-media-picker";
 import { Button, Panel } from "@/components/ui";
 
-type PickerItem = {
-  id: string;
-  title: string | null;
-  originalFilename: string;
-  mediaType: "PHOTO" | "VIDEO";
-  thumbSrc: string | null;
-  uploadedAt: string;
-  albumTitle: string | null;
-  processingStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
-};
-
 export function AlbumPageActions({
   albumId,
-  albumTitle,
-  pickerItems
+  albumTitle
 }: {
   albumId: string;
   albumTitle: string;
-  pickerItems: PickerItem[];
 }) {
   const [open, setOpen] = useState(false);
   const uploadHref = `/upload?albumId=${encodeURIComponent(albumId)}&returnTo=${encodeURIComponent(`/albums/${albumId}`)}`;
@@ -55,7 +42,7 @@ export function AlbumPageActions({
                 </Button>
               </div>
               <div className="p-5">
-                <AlbumMediaPicker albumId={albumId} albumTitle={albumTitle} items={pickerItems} />
+                <AlbumMediaPicker albumId={albumId} albumTitle={albumTitle} />
               </div>
             </Panel>
           </div>

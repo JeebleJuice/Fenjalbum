@@ -80,6 +80,8 @@ docker compose ps
 docker compose logs --tail=100 web worker
 ```
 
+The media worker is capped at 1.5 CPU cores. `FFMPEG_THREADS=2` and `FFMPEG_PRESET=veryfast` in `.env.production` further limit per-video encoder pressure. Lowering the thread count reduces instantaneous load but makes the queue take longer to finish.
+
 Database migrations run automatically. Never edit application source on the server.
 
 ## Bulk import

@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { ensureStorageRoots, mediaPosterPath, mediaThumbPath, removeTree } from "@/lib/storage";
 import { fileTypeFromPath } from "@/lib/file-signature";
+import { env } from "@/lib/env";
 
 async function ensureParent(filePath: string) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -99,6 +100,8 @@ async function createPoster(videoPath: string, posterPath: string) {
       "1",
       "-vf",
       "scale=1280:-1",
+      "-threads",
+      String(env.FFMPEG_THREADS),
       posterPath
     ]);
     let stderr = "";
@@ -153,7 +156,7 @@ async function processVideo(mediaId: string, originalPath: string, mimeType: str
   let playbackPath: string | null = null;
   if ((mimeType !== "video/mp4" && mimeType !== "video/webm") || (mimeType === "video/mp4" && probe.codecName !== "h264")) {
     playbackPath = mediaPosterPath(mediaId, "playback.mp4");
-    await run("ffmpeg", ["-y", "-i", originalPath, "-map_metadata", "0", "-c:v", "libx264", "-preset", "medium", "-crf", "23", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", playbackPath]);
+    await run("ffmpeg", ["-y", "-i", originalPath, "-map_metadata", "0", "-c:v", "libx264", "-preset", env.FFMPEG_PRESET, "-crf", "23", "-pix_fmt", "yuv420p", "-threads", String(env.FFMPEG_THREADS), "-c:a", "aac", "-movflags", "+faststart", playbackPath]);
   }
   return {
     width: probe.width,

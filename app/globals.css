@@ -90,6 +90,12 @@ body {
   font-family: inherit;
 }
 
+/* Leaflet 1.9.4 uses plus-lighter to hide Chromium tile seams. Against our
+   light canvas that compositing mode washes raster map tiles out to white. */
+.leaflet-container img.leaflet-tile {
+  mix-blend-mode: normal;
+}
+
 .fenjalbum-map-popup {
   display: grid;
   gap: 0.5rem;

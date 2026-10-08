@@ -14,6 +14,20 @@ function endOfDay(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
 }
 
+function parseSearchToken(value: string): DateBounds | null {
+  const year = /^(\d{4})$/.exec(value.trim());
+  if (year) {
+    const numericYear = Number(year[1]);
+    if (numericYear < 1900 || numericYear > 2200) return null;
+    return {
+      from: new Date(Date.UTC(numericYear, 0, 1)),
+      to: new Date(Date.UTC(numericYear, 11, 31, 23, 59, 59, 999))
+    };
+  }
+  const date = parseCalendarDate(value);
+  return date ? { from: startOfDay(date), to: endOfDay(date) } : null;
+}
+
 export function parseCalendarDate(value: string) {
   const trimmed = value.trim();
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(trimmed);
@@ -26,11 +40,12 @@ export function parseCalendarDate(value: string) {
 export function parseDateSearch(value: string): DateBounds | null {
   const parts = value.trim().split(/\s+(?:-|–|—|to)\s+/i);
   if (parts.length > 2) return null;
-  const first = parseCalendarDate(parts[0] ?? "");
-  const second = parts.length === 2 ? parseCalendarDate(parts[1] ?? "") : first;
+  const first = parseSearchToken(parts[0] ?? "");
+  const second = parts.length === 2 ? parseSearchToken(parts[1] ?? "") : first;
   if (!first || !second) return null;
-  const from = startOfDay(first <= second ? first : second);
-  const to = endOfDay(first <= second ? second : first);
+  const chronological = first.from <= second.from;
+  const from = chronological ? first.from : second.from;
+  const to = chronological ? second.to : first.to;
   return { from, to };
 }
 

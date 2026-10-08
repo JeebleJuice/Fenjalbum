@@ -39,31 +39,6 @@ export default async function AlbumPage({
   if (!album) notFound();
   const albumMedia = album.memberships.map((membership) => membership.media);
 
-  const availableMedia = await prisma.media.findMany({
-    where: { albums: { none: { albumId: album.id } }, trashedAt: null },
-    include: { albums: { include: { album: true }, orderBy: { addedAt: "asc" } } },
-    orderBy: [{ uploadedAt: "desc" }],
-    take: 24
-  });
-
-  const pickerItems = availableMedia.map((media) => ({
-    id: media.id,
-    title: media.title,
-    originalFilename: media.originalFilename,
-    mediaType: media.mediaType,
-    thumbSrc:
-      media.mediaType === "PHOTO"
-        ? media.thumbPath && media.processingStatus === "READY"
-          ? `/api/media/${media.id}?variant=thumb`
-          : `/api/media/${media.id}`
-        : media.processingStatus === "READY" && media.thumbPath
-          ? `/api/media/${media.id}?variant=thumb`
-          : null,
-    uploadedAt: media.uploadedAt.toISOString(),
-    albumTitle: media.albums.map((membership) => membership.album.title).join(", ") || null,
-    processingStatus: media.processingStatus
-  }));
-
   const hasProcessing = albumMedia.some((media) => media.processingStatus !== "READY");
   const totalPages = Math.max(1, Math.ceil(albumMedia.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -126,7 +101,7 @@ export default async function AlbumPage({
                 <Link href={viewHref("large")}>Large</Link>
               </Button>
             </div>
-            <AlbumPageActions albumId={album.id} albumTitle={album.title} pickerItems={pickerItems} />
+            <AlbumPageActions albumId={album.id} albumTitle={album.title} />
           </div>
         </div>
       </Panel>

@@ -16,6 +16,8 @@ const schema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_LOGIN_MAX: z.coerce.number().int().positive().default(10),
   MAX_CONCURRENT_UPLOADS: z.coerce.number().int().positive().default(6),
+  FFMPEG_THREADS: z.coerce.number().int().min(1).max(16).default(2),
+  FFMPEG_PRESET: z.enum(["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow"]).default("veryfast"),
   TRUST_PROXY: z
     .union([z.literal("true"), z.literal("false"), z.string().transform((v) => v === "true")])
     .default(false),

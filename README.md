@@ -159,9 +159,13 @@ Copy `.env.example` to `.env` and adjust values.
 - `RATE_LIMIT_WINDOW_MS`: rate limit window in milliseconds
 - `RATE_LIMIT_LOGIN_MAX`: login attempts per window
 - `MAX_CONCURRENT_UPLOADS`: simultaneous upload requests allowed per client; queued files are not count-limited
+- `FFMPEG_THREADS`: maximum FFmpeg threads per video job; defaults to `2`
+- `FFMPEG_PRESET`: H.264 encoding preset; defaults to the lower-CPU-duration `veryfast` preset
 - `TRUST_PROXY`: whether to trust reverse-proxy headers
 - `SEED_DEMO`: optional demo seed mode for development only
 - `WORKER_POLL_MS`: background worker polling interval
+
+The production Compose worker is additionally capped at 1.5 CPU cores. This protects the web app and database while video derivatives are generated, at the cost of longer processing time.
 
 ## Default setup
 

@@ -19,4 +19,10 @@ describe("date search", () => {
     expect(explicitDateBounds("2026-03-21", undefined).from?.toISOString()).toBe("2026-03-21T00:00:00.000Z");
     expect(explicitDateBounds(undefined, "2026-03-25").to?.toISOString()).toBe("2026-03-25T23:59:59.999Z");
   });
+
+  it("treats a year or year range as complete calendar years", () => {
+    expect(parseDateSearch("2025")?.from.toISOString()).toBe("2025-01-01T00:00:00.000Z");
+    expect(parseDateSearch("2025")?.to.toISOString()).toBe("2025-12-31T23:59:59.999Z");
+    expect(parseDateSearch("2024 - 2025")?.to.toISOString()).toBe("2025-12-31T23:59:59.999Z");
+  });
 });
