@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { AppShell } from "@/components/app-shell";
+import { AdminNavigation } from "@/components/admin-navigation";
 import { Button, Panel } from "@/components/ui";
 
 export default async function AdminAlbumsPage() {
@@ -20,6 +21,7 @@ export default async function AdminAlbumsPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Albums</h1>
         <p className="mt-2 text-sm text-[hsl(var(--fg))]/65">Album administration and organization.</p>
       </Panel>
+      <AdminNavigation />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {albums.map((album) => (
           <Panel key={album.id} className="p-4">

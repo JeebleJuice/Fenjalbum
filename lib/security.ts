@@ -4,8 +4,10 @@ import sanitize from "sanitize-filename";
 import { env } from "@/lib/env";
 
 type Bucket = { tokens: number; updatedAt: number };
+type SlotPool = { active: number };
 
 const buckets = new Map<string, Bucket>();
+const slotPools = new Map<string, SlotPool>();
 
 export function normalizeFileName(input: string) {
   const name = sanitize(input).trim().replace(/\s+/g, " ").replace(/^[.\/\\_-]+/, "");
@@ -60,4 +62,25 @@ export function rateLimit(key: string, limit: number, windowMs = env.RATE_LIMIT_
   bucket.updatedAt = now;
   buckets.set(key, bucket);
   return { allowed: true, retryAfterMs: 0 };
+}
+
+export function acquireSlot(key: string, limit: number) {
+  const pool = slotPools.get(key) ?? { active: 0 };
+  if (pool.active >= limit) {
+    return { acquired: false as const, release: () => undefined };
+  }
+
+  pool.active += 1;
+  slotPools.set(key, pool);
+  let released = false;
+
+  return {
+    acquired: true as const,
+    release: () => {
+      if (released) return;
+      released = true;
+      pool.active -= 1;
+      if (pool.active === 0) slotPools.delete(key);
+    }
+  };
 }

@@ -36,7 +36,7 @@ The worker turns uploaded items from **Pending** into **Ready**. Restart it afte
 
 Photo and video uploads stream through `/api/upload`. That route deliberately
 bypasses Next.js Proxy body cloning while still enforcing its own authenticated
-session, CSRF token, rate limit, MIME-signature validation, and configured
+session, CSRF token, concurrency cap, MIME-signature validation, and configured
 `MAX_UPLOAD_MB` file limit. This is required for videos larger than Proxy's
 default 10 MB request-body buffer.
 

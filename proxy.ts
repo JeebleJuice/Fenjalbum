@@ -39,7 +39,7 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next({ headers: responseHeaders });
 }
 
-// The upload route authenticates and rate-limits itself. It must bypass Proxy because
+// The upload route authenticates and limits concurrent work itself. It must bypass Proxy because
 // Next.js clones and buffers proxied request bodies (10 MB by default), which truncates
 // larger streamed video uploads before Busboy receives the closing multipart boundary.
 export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|api/upload).*)"] };

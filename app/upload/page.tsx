@@ -15,7 +15,10 @@ export default async function UploadPage({
   const user = await getCurrentUser();
   if (!user) notFound();
   const { albumId, returnTo } = await searchParams;
-  const album = albumId ? await prisma.album.findUnique({ where: { id: albumId } }) : null;
+  const [album, albums] = await Promise.all([
+    albumId ? prisma.album.findUnique({ where: { id: albumId } }) : null,
+    prisma.album.findMany({ orderBy: [{ sortOrder: "asc" }, { title: "asc" }], select: { id: true, title: true } })
+  ]);
   return (
     <AppShell user={user}>
       <Panel className="overflow-hidden p-6">
@@ -47,7 +50,7 @@ export default async function UploadPage({
           </div>
         </div>
       </Panel>
-      <UploadDropzone albumId={albumId} returnTo={returnTo ?? (albumId ? `/albums/${albumId}` : "/")} />
+      <UploadDropzone albumId={album?.id ?? null} albums={albums} returnTo={returnTo ?? null} />
     </AppShell>
   );
 }

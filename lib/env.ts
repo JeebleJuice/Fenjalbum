@@ -15,7 +15,7 @@ const schema = z.object({
   MAX_UPLOAD_MB: z.coerce.number().int().positive().default(1024),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_LOGIN_MAX: z.coerce.number().int().positive().default(10),
-  RATE_LIMIT_UPLOAD_MAX: z.coerce.number().int().positive().default(20),
+  MAX_CONCURRENT_UPLOADS: z.coerce.number().int().positive().default(6),
   TRUST_PROXY: z
     .union([z.literal("true"), z.literal("false"), z.string().transform((v) => v === "true")])
     .default(false),

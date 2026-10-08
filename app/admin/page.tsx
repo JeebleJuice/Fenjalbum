@@ -1,11 +1,11 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { AppShell } from "@/components/app-shell";
-import { Button, Panel } from "@/components/ui";
+import { AdminNavigation } from "@/components/admin-navigation";
+import { Panel } from "@/components/ui";
 import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { env } from "@/lib/env";
@@ -36,18 +36,12 @@ export default async function AdminPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Admin</h1>
         <p className="mt-2 text-sm text-[hsl(var(--fg))]/65">Operational controls for your private archive.</p>
       </Panel>
+      <AdminNavigation />
       <div className="grid gap-4 md:grid-cols-4">
         <Panel className="p-4"><div className="text-xs uppercase text-[hsl(var(--fg))]/55">Media</div><div className="mt-2 text-2xl font-semibold">{mediaCount}</div></Panel>
         <Panel className="p-4"><div className="text-xs uppercase text-[hsl(var(--fg))]/55">Albums</div><div className="mt-2 text-2xl font-semibold">{albumCount}</div></Panel>
         <Panel className="p-4"><div className="text-xs uppercase text-[hsl(var(--fg))]/55">Users</div><div className="mt-2 text-2xl font-semibold">{userCount}</div></Panel>
         <Panel className="p-4"><div className="text-xs uppercase text-[hsl(var(--fg))]/55">Storage</div><div className="mt-2 text-2xl font-semibold">{(storage / 1024 / 1024 / 1024).toFixed(2)} GB</div></Panel>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button asChild><Link href="/admin/media">Manage media</Link></Button>
-        <Button asChild variant="secondary"><Link href="/admin/albums">Manage albums</Link></Button>
-        <Button asChild variant="secondary"><Link href="/admin/trash">Trash</Link></Button>
-        <Button asChild variant="secondary"><Link href="/admin/users">Users</Link></Button>
-        <Button asChild variant="secondary"><Link href="/admin/settings">Settings</Link></Button>
       </div>
     </AppShell>
   );

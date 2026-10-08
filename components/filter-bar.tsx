@@ -1,5 +1,6 @@
 "use client";
 
+import { Search, SlidersHorizontal } from "lucide-react";
 import { Badge, Button, Input, Select } from "@/components/ui";
 
 export type GalleryQuery = {
@@ -22,10 +23,23 @@ export function FilterBar({
   actionLabel?: string;
 }) {
   return (
-    <form method="get" className="space-y-3 rounded-[1.5rem] border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-soft">
+    <form method="get" className="space-y-4 rounded-[1.5rem] border border-[hsl(var(--border))] bg-[hsl(var(--card))]/95 p-4 shadow-soft sm:p-5">
       <input type="hidden" name="view" value={query.view ?? "large"} />
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-        <Input name="q" defaultValue={query.q ?? ""} placeholder="Search by filename, title, description, tag, album, or date" className="xl:col-span-2" />
+      <label className="relative block">
+        <span className="sr-only">Search your media library</span>
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[hsl(var(--fg))]/45" />
+        <Input
+          name="q"
+          defaultValue={query.q ?? ""}
+          placeholder="Search photos and videos"
+          className="h-[3.25rem] rounded-full border-transparent bg-[hsl(var(--muted))] pl-12 pr-5 text-base shadow-none focus:border-[hsl(var(--accent))]"
+        />
+      </label>
+      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-[hsl(var(--fg))]/45">
+        <SlidersHorizontal className="h-4 w-4" />
+        Refine results
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Select name="mediaType" defaultValue={query.mediaType ?? "all"}>
           <option value="all">All media</option>
           <option value="photo">Photos only</option>
@@ -52,7 +66,7 @@ export function FilterBar({
         </Select>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit">{actionLabel}</Button>
+        <Button type="submit" className="min-w-28">{actionLabel}</Button>
         <Button type="reset" variant="secondary" onClick={() => (window.location.href = window.location.pathname)}>
           Clear filters
         </Button>

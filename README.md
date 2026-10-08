@@ -154,7 +154,7 @@ Copy `.env.example` to `.env` and adjust values.
 - `MAX_UPLOAD_MB`: per-request upload size limit
 - `RATE_LIMIT_WINDOW_MS`: rate limit window in milliseconds
 - `RATE_LIMIT_LOGIN_MAX`: login attempts per window
-- `RATE_LIMIT_UPLOAD_MAX`: uploads per window
+- `MAX_CONCURRENT_UPLOADS`: simultaneous upload requests allowed per client; queued files are not count-limited
 - `TRUST_PROXY`: whether to trust reverse-proxy headers
 - `SEED_DEMO`: optional demo seed mode for development only
 - `WORKER_POLL_MS`: background worker polling interval
@@ -219,8 +219,9 @@ Threat model:
 - State-changing requests require CSRF tokens.
 - Filenames are normalized and path traversal is blocked.
 - Uploads are restricted by MIME signature and file type validation.
-- Login and upload endpoints are rate limited.
-- The upload endpoint performs its own session, CSRF, and rate-limit checks and
+- Login attempts are rate limited. Authenticated uploads use a bounded queue and a
+  per-client concurrency cap, allowing large selections without overloading the server.
+- The upload endpoint performs its own session, CSRF, and concurrency checks and
   intentionally bypasses Next.js Proxy so large videos stream to temporary
   storage instead of being truncated by Proxy's request-body buffer.
 

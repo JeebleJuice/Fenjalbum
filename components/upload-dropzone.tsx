@@ -2,18 +2,68 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { UploadCloud, RotateCcw } from "lucide-react";
-import { Button, Panel } from "@/components/ui";
+import { RefreshCw, RotateCcw, Square, UploadCloud } from "lucide-react";
+import { Button, Panel, Select } from "@/components/ui";
+import { runBoundedQueue } from "@/lib/bounded-queue";
 
-type UploadStatus = { id: string; name: string; status: "pending" | "uploading" | "done" | "duplicate" | "error"; message?: string };
+type UploadState = "pending" | "uploading" | "waiting" | "done" | "duplicate" | "error";
+type UploadStatus = { id: string; name: string; status: UploadState; message?: string };
+type UploadPayload = { error?: string; retryAfterMs?: number; results?: Array<{ duplicate?: boolean }> };
+type WakeLock = { release: () => Promise<void> };
 
-export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null; returnTo?: string | null }) {
+const PARALLEL_UPLOADS = 3;
+const MAX_TRANSIENT_RETRIES = 3;
+
+function wait(delayMs: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      signal.removeEventListener("abort", abort);
+      resolve();
+    }, delayMs);
+    function abort() {
+      window.clearTimeout(timeout);
+      reject(new DOMException("Upload cancelled", "AbortError"));
+    }
+    signal.addEventListener("abort", abort, { once: true });
+  });
+}
+
+async function readPayload(response: Response): Promise<UploadPayload> {
+  const raw = await response.text().catch(() => "");
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as UploadPayload;
+  } catch {
+    return { error: raw.slice(0, 200) };
+  }
+}
+
+function retryDelay(response: Response, payload: UploadPayload) {
+  const headerSeconds = Number(response.headers.get("retry-after"));
+  const requested = Number.isFinite(headerSeconds) && headerSeconds > 0 ? headerSeconds * 1_000 : payload.retryAfterMs;
+  return Math.min(60_000, Math.max(1_000, requested ?? 2_000));
+}
+
+export function UploadDropzone({
+  albumId,
+  albums,
+  returnTo
+}: {
+  albumId?: string | null;
+  albums: Array<{ id: string; title: string }>;
+  returnTo?: string | null;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const folderRef = useRef<HTMLInputElement | null>(null);
+  const filesRef = useRef<File[]>([]);
+  const controllerRef = useRef<AbortController | null>(null);
+  const uploadingRef = useRef(false);
+  const csrfRef = useRef("");
+  const targetAlbumRef = useRef(albumId ?? "");
+  const [targetAlbumId, setTargetAlbumId] = useState(albumId ?? "");
   const [items, setItems] = useState<UploadStatus[]>([]);
   const [dragOver, setDragOver] = useState(false);
-  const [csrf, setCsrf] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -21,93 +71,179 @@ export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null;
     fetch("/api/auth/csrf", { cache: "no-store" })
       .then((res) => res.json())
       .then((data: { csrf?: string }) => {
-        if (active) setCsrf(data.csrf ?? "");
+        if (active) csrfRef.current = data.csrf ?? "";
       })
       .catch(() => {
-        if (active) setCsrf("");
+        if (active) csrfRef.current = "";
       });
     return () => {
       active = false;
     };
   }, []);
 
-  async function sendFiles(files: FileList | File[]) {
-    if (isUploading) return;
-    const selectedFiles = Array.from(files);
-    if (selectedFiles.length === 0) return;
-    const uploadList = selectedFiles.map((file, index) => ({ id: `${index}-${file.name}-${file.lastModified}`, name: file.name, status: "pending" as const }));
-    setItems(uploadList);
-    setIsUploading(true);
-    let hadError = false;
-    let cursor = 0;
+  useEffect(() => {
+    if (!isUploading) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [isUploading]);
 
-    async function uploadNext() {
-      while (cursor < selectedFiles.length) {
-        const index = cursor;
-        cursor += 1;
-        const file = selectedFiles[index];
-      setItems((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, status: "uploading" } : item)));
+  useEffect(() => () => controllerRef.current?.abort(), []);
+
+  function updateItem(index: number, update: Partial<UploadStatus>) {
+    setItems((current) => {
+      if (!current[index]) return current;
+      const next = [...current];
+      next[index] = { ...next[index], ...update };
+      return next;
+    });
+  }
+
+  async function csrfToken() {
+    if (csrfRef.current) return csrfRef.current;
+    const response = await fetch("/api/auth/csrf", { cache: "no-store" });
+    if (!response.ok) throw new Error("Could not start a secure upload session");
+    const payload = (await response.json()) as { csrf?: string };
+    if (!payload.csrf) throw new Error("Could not start a secure upload session");
+    csrfRef.current = payload.csrf;
+    return payload.csrf;
+  }
+
+  async function uploadOne(index: number, token: string, signal: AbortSignal) {
+    const file = filesRef.current[index];
+    if (!file) return false;
+    let transientAttempts = 0;
+
+    while (!signal.aborted) {
+      updateItem(index, { status: "uploading", message: undefined });
+      const formData = new FormData();
+      if (targetAlbumRef.current) formData.append("albumId", targetAlbumRef.current);
+      formData.append("file", file);
+
+      let response: Response;
       try {
-        let token = csrf;
-        if (!token) {
-          const response = await fetch("/api/auth/csrf", { cache: "no-store" });
-          const payload = (await response.json()) as { csrf?: string };
-          token = payload.csrf ?? "";
-          if (token) setCsrf(token);
-        }
-        if (!token) {
-          throw new Error("CSRF token not ready");
-        }
-        const formData = new FormData();
-        if (albumId) formData.append("albumId", albumId);
-        formData.append("file", file);
-        const response = await fetch("/api/upload", {
+        response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
-          headers: { "x-csrf-token": token }
+          headers: { "x-csrf-token": token },
+          signal
         });
-        const raw = await response.text();
-        let payload: { error?: string; results?: Array<{ duplicate?: boolean }> } = {};
-        if (raw) {
-          try {
-            payload = JSON.parse(raw) as { error?: string; results?: Array<{ duplicate?: boolean }> };
-          } catch {
-            payload = { error: raw.slice(0, 200) };
-          }
-        }
-        if (!response.ok) {
-          hadError = true;
-          setItems((current) =>
-            current.map((item, itemIndex) => (itemIndex === index ? { ...item, status: "error", message: payload.error ?? "Upload failed" } : item))
-          );
-        } else {
-          const result = Array.isArray(payload.results) ? payload.results[0] : null;
-          if (result?.duplicate) {
-            setItems((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, status: "duplicate", message: "Duplicate detected" } : item)));
-          } else {
-            setItems((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, status: "done" } : item)));
-          }
-        }
       } catch {
-        hadError = true;
-        setItems((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, status: "error", message: "Network error" } : item)));
+        if (signal.aborted) return false;
+        transientAttempts += 1;
+        if (transientAttempts > MAX_TRANSIENT_RETRIES) {
+          updateItem(index, { status: "error", message: "Network error after automatic retries" });
+          return false;
+        }
+        const delay = 1_000 * 2 ** (transientAttempts - 1);
+        updateItem(index, { status: "waiting", message: `Connection interrupted; retrying in ${delay / 1_000}s` });
+        await wait(delay, signal).catch(() => undefined);
+        continue;
       }
+
+      const payload = await readPayload(response);
+      if (response.ok) {
+        const result = Array.isArray(payload.results) ? payload.results[0] : null;
+        updateItem(index, result?.duplicate
+          ? { status: "duplicate", message: "Already in your library" }
+          : { status: "done", message: undefined });
+        return true;
       }
+
+      if (response.status === 429) {
+        const delay = retryDelay(response, payload);
+        updateItem(index, { status: "waiting", message: `Server busy; retrying in ${Math.ceil(delay / 1_000)}s` });
+        await wait(delay, signal).catch(() => undefined);
+        continue;
+      }
+
+      if (response.status >= 500 && transientAttempts < MAX_TRANSIENT_RETRIES) {
+        transientAttempts += 1;
+        const delay = 1_000 * 2 ** (transientAttempts - 1);
+        updateItem(index, { status: "waiting", message: `Server error; retrying in ${delay / 1_000}s` });
+        await wait(delay, signal).catch(() => undefined);
+        continue;
+      }
+
+      updateItem(index, { status: "error", message: payload.error ?? `Upload failed (${response.status})` });
+      return false;
     }
-    await Promise.all(Array.from({ length: Math.min(3, selectedFiles.length) }, () => uploadNext()));
-    setIsUploading(false);
-    if (!hadError) {
-      if (returnTo) {
-        router.replace(returnTo);
-      } else {
-        router.replace("/");
-      }
+    return false;
+  }
+
+  async function runQueue(indexes: number[]) {
+    if (uploadingRef.current || indexes.length === 0) return;
+    uploadingRef.current = true;
+    setIsUploading(true);
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    let wakeLock: WakeLock | null = null;
+    let allSucceeded = true;
+
+    try {
+      const navigatorWithWakeLock = navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLock> } };
+      wakeLock = await navigatorWithWakeLock.wakeLock?.request("screen").catch(() => null) ?? null;
+      const token = await csrfToken();
+      await runBoundedQueue(indexes, PARALLEL_UPLOADS, async (index) => {
+        if (controller.signal.aborted) return;
+        const succeeded = await uploadOne(index, token, controller.signal);
+        if (!succeeded) allSucceeded = false;
+      });
+    } catch (error) {
+      allSucceeded = false;
+      const message = error instanceof Error ? error.message : "Could not start uploads";
+      const queued = new Set(indexes);
+      setItems((current) => current.map((item, index) =>
+        queued.has(index) && (item.status === "pending" || item.status === "uploading" || item.status === "waiting")
+          ? { ...item, status: "error", message }
+          : item
+      ));
+    } finally {
+      await wakeLock?.release().catch(() => undefined);
+      controllerRef.current = null;
+      uploadingRef.current = false;
+      setIsUploading(false);
+    }
+
+    if (allSucceeded && !controller.signal.aborted) {
+      router.replace(returnTo ?? (targetAlbumRef.current ? `/albums/${targetAlbumRef.current}` : "/"));
       router.refresh();
     }
   }
 
-  const completed = items.filter((item) => item.status === "done" || item.status === "duplicate" || item.status === "error").length;
-  const progress = items.length > 0 ? Math.round((completed / items.length) * 100) : 0;
+  function sendFiles(files: FileList | File[]) {
+    if (uploadingRef.current) return;
+    const selectedFiles = Array.from(files);
+    if (selectedFiles.length === 0) return;
+    filesRef.current = selectedFiles;
+    setItems(selectedFiles.map((file, index) => ({
+      id: `${index}-${file.name}-${file.lastModified}`,
+      name: file.name,
+      status: "pending"
+    })));
+    void runQueue(selectedFiles.map((_, index) => index));
+  }
+
+  function cancelUploads() {
+    controllerRef.current?.abort();
+    setItems((current) => current.map((item) =>
+      item.status === "pending" || item.status === "uploading" || item.status === "waiting"
+        ? { ...item, status: "error", message: "Cancelled—safe to retry" }
+        : item
+    ));
+  }
+
+  function retryFailed() {
+    const failedIndexes = items.flatMap((item, index) => item.status === "error" ? [index] : []);
+    setItems((current) => current.map((item) => item.status === "error" ? { ...item, status: "pending", message: undefined } : item));
+    void runQueue(failedIndexes);
+  }
+
+  const finished = items.filter((item) => item.status === "done" || item.status === "duplicate" || item.status === "error").length;
+  const succeeded = items.filter((item) => item.status === "done").length;
+  const duplicates = items.filter((item) => item.status === "duplicate").length;
+  const failed = items.filter((item) => item.status === "error").length;
+  const progress = items.length > 0 ? Math.round((finished / items.length) * 100) : 0;
 
   return (
     <Panel
@@ -129,19 +265,47 @@ export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null;
         </div>
         <div>
           <h2 className="text-lg font-semibold">Drop files here</h2>
-          <p className="text-sm text-[hsl(var(--fg))]/60">Every selected photo and video is queued automatically—there is no Fenjalbum selection limit.</p>
+          <p className="text-sm text-[hsl(var(--fg))]/60">Large selections are uploaded in a controlled queue—three files at a time, with automatic retries.</p>
         </div>
+        <label className="w-full max-w-md text-left text-xs font-medium uppercase tracking-[0.16em] text-[hsl(var(--fg))]/55">
+          Upload destination
+          <Select
+            className="mt-2 normal-case tracking-normal"
+            value={targetAlbumId}
+            disabled={isUploading}
+            onChange={(event) => {
+              targetAlbumRef.current = event.target.value;
+              setTargetAlbumId(event.target.value);
+            }}
+          >
+            <option value="">Main gallery (no album)</option>
+            {albums.map((album) => <option key={album.id} value={album.id}>{album.title}</option>)}
+          </Select>
+        </label>
         <div className="flex flex-wrap justify-center gap-3">
           <Button type="button" disabled={isUploading} onClick={() => inputRef.current?.click()}>
             Choose photos and videos
           </Button>
           <Button type="button" disabled={isUploading} variant="secondary" onClick={() => folderRef.current?.click()}>Choose entire folder</Button>
-          <Button type="button" disabled={isUploading} variant="secondary" onClick={() => setItems([])}>
+          {isUploading ? (
+            <Button type="button" variant="danger" onClick={cancelUploads}>
+              <Square className="h-4 w-4" />
+              Stop uploads
+            </Button>
+          ) : failed > 0 ? (
+            <Button type="button" variant="secondary" onClick={retryFailed}>
+              <RefreshCw className="h-4 w-4" />
+              Retry {failed} failed
+            </Button>
+          ) : null}
+          <Button type="button" disabled={isUploading} variant="secondary" onClick={() => { filesRef.current = []; setItems([]); }}>
             <RotateCcw className="h-4 w-4" />
             Clear list
           </Button>
         </div>
-        <p className="text-xs text-[hsl(var(--fg))]/50">Clear list only removes the local queue view.</p>
+        <p className="max-w-xl text-xs leading-5 text-[hsl(var(--fg))]/50">
+          Keep this page open until the queue finishes. Files are saved immediately, so retrying the same selection after an interruption safely detects completed files as duplicates.
+        </p>
         <input
           ref={inputRef}
           type="file"
@@ -149,7 +313,7 @@ export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null;
           accept="image/*,video/*"
           className="hidden"
           onChange={(event) => {
-            if (event.target.files) void sendFiles(event.target.files);
+            if (event.target.files) sendFiles(event.target.files);
             event.target.value = "";
           }}
         />
@@ -158,20 +322,25 @@ export function UploadDropzone({ albumId, returnTo }: { albumId?: string | null;
           type="file"
           multiple
           className="hidden"
-          onChange={(event) => { if (event.target.files) void sendFiles(event.target.files); event.target.value = ""; }}
+          onChange={(event) => { if (event.target.files) sendFiles(event.target.files); event.target.value = ""; }}
         />
         {items.length > 0 ? (
-          <div className="mt-4 w-full space-y-2 text-left">
+          <div className="mt-4 w-full space-y-2 text-left" aria-live="polite">
             <div className="space-y-2 rounded-2xl bg-[hsl(var(--muted))] p-4">
-              <div className="flex items-center justify-between text-sm"><span>{completed} of {items.length} finished</span><span>{progress}%</span></div>
-              <div className="h-2 overflow-hidden rounded-full bg-[hsl(var(--card))]"><div className="h-full rounded-full bg-[hsl(var(--accent))] transition-[width]" style={{ width: `${progress}%` }} /></div>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span>{finished} of {items.length} finished</span>
+                <span>{succeeded} uploaded · {duplicates} duplicates{failed > 0 ? ` · ${failed} failed` : ""} · {progress}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-[hsl(var(--card))]">
+                <div className="h-full rounded-full bg-[hsl(var(--accent))] transition-[width]" style={{ width: `${progress}%` }} />
+              </div>
             </div>
             {items.slice(0, 100).map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-4 rounded-2xl border border-[hsl(var(--border))] px-4 py-3 text-sm">
-                <span className="truncate">{item.name}</span>
-                <span className="text-xs uppercase tracking-wide text-[hsl(var(--fg))]/60">
+                <span className="min-w-0 truncate">{item.name}</span>
+                <span className="shrink-0 text-right text-xs uppercase tracking-wide text-[hsl(var(--fg))]/60">
                   {item.status}
-                  {item.message ? `: ${item.message}` : ""}
+                  {item.message ? <span className="block max-w-56 normal-case tracking-normal">{item.message}</span> : null}
                 </span>
               </div>
             ))}

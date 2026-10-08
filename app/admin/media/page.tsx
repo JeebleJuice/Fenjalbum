@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { AppShell } from "@/components/app-shell";
+import { AdminNavigation } from "@/components/admin-navigation";
 import { Panel } from "@/components/ui";
 import Link from "next/link";
 import { RetryJobButton } from "@/components/retry-job-button";
@@ -28,6 +29,7 @@ export default async function AdminMediaPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Media</h1>
         <p className="mt-2 text-sm text-[hsl(var(--fg))]/65">Recent items and quick actions.</p>
       </Panel>
+      <AdminNavigation />
       <div className="grid gap-3">
         {media.map((item) => (
           <Panel key={item.id} className="flex items-center justify-between gap-4 p-4">

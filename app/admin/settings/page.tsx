@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { AppShell } from "@/components/app-shell";
+import { AdminNavigation } from "@/components/admin-navigation";
 import { Panel } from "@/components/ui";
 import { AdminPasswordForm } from "@/components/admin-password-form";
 
@@ -17,6 +18,7 @@ export default async function AdminSettingsPage() {
           This first pass keeps settings conservative. Add reverse proxy, backup, and storage changes via environment variables.
         </p>
       </Panel>
+      <AdminNavigation />
       <AdminPasswordForm />
     </AppShell>
   );

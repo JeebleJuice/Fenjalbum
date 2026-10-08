@@ -7,7 +7,7 @@ import crypto from "node:crypto";
 import { Readable } from "node:stream";
 import { ensureBootstrapAdmin, requireUser, requireCsrfToken } from "@/lib/auth";
 import { env } from "@/lib/env";
-import { getClientIp, rateLimit } from "@/lib/security";
+import { acquireSlot, getClientIp } from "@/lib/security";
 import { tempUploadPath } from "@/lib/storage";
 import { importUploadedFile } from "@/lib/upload";
 
@@ -15,14 +15,21 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   const temporaryFiles = new Set<string>();
+  let releaseUploadSlot: () => void = () => undefined;
   try {
     await ensureBootstrapAdmin();
     await requireUser();
     await requireCsrfToken(request);
 
     const ip = getClientIp(request.headers);
-    const limited = rateLimit(`upload:${ip}`, env.RATE_LIMIT_UPLOAD_MAX, env.RATE_LIMIT_WINDOW_MS);
-    if (!limited.allowed) return NextResponse.json({ error: "Too many uploads" }, { status: 429 });
+    const slot = acquireSlot(`upload:${ip}`, env.MAX_CONCURRENT_UPLOADS);
+    if (!slot.acquired) {
+      return NextResponse.json(
+        { error: "The server is busy with other uploads", retryAfterMs: 2_000 },
+        { status: 429, headers: { "Retry-After": "2" } }
+      );
+    }
+    releaseUploadSlot = slot.release;
 
     const contentType = request.headers.get("content-type");
     if (!contentType?.includes("multipart/form-data")) {
@@ -84,6 +91,7 @@ export async function POST(request: NextRequest) {
     const finished = new Promise<void>((resolve, reject) => {
       busboy.on("finish", resolve);
       busboy.on("error", reject);
+      nodeStream.on("error", reject);
     });
 
     nodeStream.pipe(busboy);
@@ -94,6 +102,7 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Upload failed";
     return NextResponse.json({ error: message }, { status: 500 });
   } finally {
+    releaseUploadSlot();
     await Promise.all(Array.from(temporaryFiles, (tmpPath) => rm(tmpPath, { force: true }).catch(() => undefined)));
   }
 }

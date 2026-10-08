@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { isSafeRedirect, normalizeFileName, rateLimit, sha256, sha256File } from "@/lib/security";
+import { acquireSlot, isSafeRedirect, normalizeFileName, rateLimit, sha256, sha256File } from "@/lib/security";
 
 describe("security helpers", () => {
   it("normalizes filenames", () => {
@@ -20,6 +20,21 @@ describe("security helpers", () => {
     const second = rateLimit("ip", 1, 10_000);
     expect(first.allowed).toBe(true);
     expect(second.allowed).toBe(false);
+  });
+
+  it("bounds concurrent work without limiting the total queue", () => {
+    const first = acquireSlot("uploads", 2);
+    const second = acquireSlot("uploads", 2);
+    const blocked = acquireSlot("uploads", 2);
+    expect(first.acquired).toBe(true);
+    expect(second.acquired).toBe(true);
+    expect(blocked.acquired).toBe(false);
+
+    first.release();
+    const next = acquireSlot("uploads", 2);
+    expect(next.acquired).toBe(true);
+    second.release();
+    next.release();
   });
 
   it("hashes data consistently", () => {
