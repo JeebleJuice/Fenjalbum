@@ -7,6 +7,7 @@ import { Album, Compass, Heart, Images, LibraryBig, MapPinned, Menu, Shield, Upl
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { cn } from "@/lib/utils";
+import { ProcessingIndicator } from "@/components/processing-indicator";
 
 const navigation = [
   { href: "/", label: "Discover", icon: Compass },
@@ -110,6 +111,7 @@ export function SidebarNavigation({
         </nav>
 
         <div className="space-y-3 border-t border-[hsl(var(--border))] pt-4">
+          <ProcessingIndicator />
           <div className="flex items-center justify-between px-1">
             <span className="text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--fg))]/45">Appearance</span>
             <ThemeToggle />

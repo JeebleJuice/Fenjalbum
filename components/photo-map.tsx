@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { formatDisplayDate } from "@/lib/date-format";
 
 export type MapMediaPoint = {
   id: string;
@@ -69,7 +70,7 @@ export function PhotoMap({ points }: { points: MapMediaPoint[] }) {
             link.appendChild(image);
           }
           const label = document.createElement("span");
-          label.textContent = item.capturedAt ? `${item.title} · ${new Date(item.capturedAt).toLocaleDateString()}` : item.title;
+          label.textContent = item.capturedAt ? `${item.title} · ${formatDisplayDate(item.capturedAt)}` : item.title;
           link.appendChild(label);
           popup.appendChild(link);
         }
@@ -91,5 +92,5 @@ export function PhotoMap({ points }: { points: MapMediaPoint[] }) {
     };
   }, [points]);
 
-  return <div ref={containerRef} className="h-[65vh] min-h-[28rem] w-full rounded-[1.5rem]" aria-label="Map of media capture locations" />;
+  return <div ref={containerRef} className="h-full min-h-[18rem] w-full rounded-[1.25rem]" aria-label="Map of media capture locations" />;
 }

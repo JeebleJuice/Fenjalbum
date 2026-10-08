@@ -9,6 +9,7 @@ import { MediaGrid } from "@/components/gallery";
 import { Button, Panel } from "@/components/ui";
 import { AlbumPageActions } from "@/components/album-page-actions";
 import { ProcessingRefresh } from "@/components/processing-refresh";
+import { GalleryPagination } from "@/components/pagination";
 
 export default async function AlbumPage({
   params,
@@ -23,7 +24,7 @@ export default async function AlbumPage({
   const query = await searchParams;
   const page = Math.max(1, Number(query.page ?? "1") || 1);
   const view = query.view === "compact" ? "compact" : query.view === "comfortable" ? "comfortable" : "large";
-  const pageSize = view === "compact" ? 24 : view === "comfortable" ? 12 : 6;
+  const pageSize = view === "compact" ? 48 : view === "comfortable" ? 24 : 12;
 
   const album = await prisma.album.findUnique({
     where: { id },
@@ -132,23 +133,7 @@ export default async function AlbumPage({
 
       <MediaGrid items={pagedItems} density={view} returnTo={`/albums/${album.id}?view=${view}&page=${currentPage}`} />
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-[hsl(var(--fg))]/60">
-          Showing {Math.min(pageSize, pagedMedia.length)} of {albumMedia.length}
-        </div>
-        <div className="flex gap-2">
-          {currentPage > 1 ? (
-            <Button asChild variant="secondary">
-              <Link href={pageHref(currentPage - 1)}>Previous</Link>
-            </Button>
-          ) : null}
-          {currentPage < totalPages ? (
-            <Button asChild>
-              <Link href={pageHref(currentPage + 1)}>Next</Link>
-            </Button>
-          ) : null}
-        </div>
-      </div>
+      <GalleryPagination page={currentPage} pageSize={pageSize} total={albumMedia.length} totalPages={totalPages} hrefForPage={pageHref} />
     </AppShell>
   );
 }

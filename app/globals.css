@@ -76,6 +76,14 @@ body {
   margin-bottom: 1rem;
 }
 
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .leaflet-container {
   background: hsl(var(--muted));
   color: #111827;

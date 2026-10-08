@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Download, Edit3, Heart, Trash2, X } from "lucide-react";
 import { Button, Input, Panel, Textarea } from "@/components/ui";
+import { formatDisplayDateTime } from "@/lib/date-format";
 
 export type ViewerItem = {
   id: string;
@@ -112,7 +113,7 @@ export function MediaViewer({
           <div className="min-w-0">
             <div className="truncate text-sm font-medium">{item.title ?? item.originalFilename}</div>
             <div className="truncate text-xs text-[hsl(var(--fg))]/60">
-              {item.albumTitles.join(", ") || "No album"} · {new Date(item.uploadedAt).toLocaleString()}
+              {item.albumTitles.join(", ") || "No album"} · {formatDisplayDateTime(item.uploadedAt)}
             </div>
           </div>
         </div>
@@ -187,11 +188,11 @@ export function MediaViewer({
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-[hsl(var(--fg))]/60">Capture date</dt>
-                <dd className="text-right">{item.captureAt ? new Date(item.captureAt).toLocaleString() : "Unknown"}</dd>
+                <dd className="text-right">{item.captureAt ? formatDisplayDateTime(item.captureAt) : "Unknown"}</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-[hsl(var(--fg))]/60">Upload date</dt>
-                <dd className="text-right">{new Date(item.uploadedAt).toLocaleString()}</dd>
+                <dd className="text-right">{formatDisplayDateTime(item.uploadedAt)}</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-[hsl(var(--fg))]/60">Albums</dt>

@@ -308,7 +308,7 @@ export function UploadDropzone({
           </Button>
         </div>
         <p className="max-w-xl text-xs leading-5 text-[hsl(var(--fg))]/50">
-          Keep this page open until the queue finishes. Files are saved immediately, so retrying the same selection after an interruption safely detects completed files as duplicates.
+          Keep this page open only while the original files transfer. When transfer finishes, Fenjalbum takes you back automatically and the server continues thumbnails, metadata, and video processing while you browse or minimize the app.
         </p>
         <input
           ref={inputRef}
@@ -353,7 +353,7 @@ export function UploadDropzone({
             <div className="space-y-2 rounded-2xl bg-[hsl(var(--muted))] p-4">
               <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span>{finished} of {items.length} finished</span>
-                <span>{succeeded} uploaded · {duplicates} duplicates{failed > 0 ? ` · ${failed} failed` : ""} · {progress}%</span>
+                <span>{succeeded} transferred · {duplicates} duplicates{failed > 0 ? ` · ${failed} failed` : ""} · {progress}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-[hsl(var(--card))]">
                 <div className="h-full rounded-full bg-[hsl(var(--accent))] transition-[width]" style={{ width: `${progress}%` }} />

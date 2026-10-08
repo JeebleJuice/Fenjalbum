@@ -8,6 +8,7 @@ import { AdminNavigation } from "@/components/admin-navigation";
 import { Panel } from "@/components/ui";
 import Link from "next/link";
 import { RetryJobButton } from "@/components/retry-job-button";
+import { formatDisplayDateTime } from "@/lib/date-format";
 
 export default async function AdminMediaPage() {
   const user = await getCurrentUser();
@@ -41,7 +42,7 @@ export default async function AdminMediaPage() {
                 {item.mediaType} · {item.albums.map((membership) => membership.album.title).join(", ") || "No album"} · {item.processingStatus}
               </div>
             </div>
-            <div className="text-xs text-[hsl(var(--fg))]/55">{new Date(item.uploadedAt).toLocaleString()}</div>
+            <div className="text-xs text-[hsl(var(--fg))]/55">{formatDisplayDateTime(item.uploadedAt)}</div>
           </Panel>
         ))}
       </div>

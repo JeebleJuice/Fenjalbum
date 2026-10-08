@@ -10,6 +10,7 @@ import { MediaGrid } from "@/components/gallery";
 import { AppShell } from "@/components/app-shell";
 import { Button, Panel } from "@/components/ui";
 import { ProcessingRefresh } from "@/components/processing-refresh";
+import { GalleryPagination } from "@/components/pagination";
 
 export default async function LibraryPage({
   searchParams
@@ -22,9 +23,9 @@ export default async function LibraryPage({
   const stringParams = Object.fromEntries(
     Object.entries(params).filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1] !== "")
   );
-  const baseParams = Object.fromEntries(Object.entries(stringParams).filter(([key, value]) => key !== "page" && value !== "1"));
+  const baseParams = Object.fromEntries(Object.entries(stringParams).filter(([key]) => key !== "page"));
   const view = params.view === "compact" ? "compact" : params.view === "comfortable" ? "comfortable" : "large";
-  const pageSize = view === "compact" ? 24 : view === "comfortable" ? 12 : 6;
+  const pageSize = view === "compact" ? 48 : view === "comfortable" ? 24 : 12;
   const dates = explicitDateBounds(
     typeof params.dateFrom === "string" ? params.dateFrom : undefined,
     typeof params.dateTo === "string" ? params.dateTo : undefined
@@ -65,6 +66,12 @@ export default async function LibraryPage({
   }));
   const returnQuery = new URLSearchParams(stringParams).toString();
   const returnTo = `/library${returnQuery ? `?${returnQuery}` : ""}`;
+  const pageHref = (page: number) => {
+    const next = new URLSearchParams(baseParams);
+    if (page > 1) next.set("page", String(page));
+    const query = next.toString();
+    return `/library${query ? `?${query}` : ""}`;
+  };
 
   return (
     <AppShell user={user}>
@@ -89,13 +96,7 @@ export default async function LibraryPage({
         ))}
       </div>
       <MediaGrid items={items} density={view} returnTo={returnTo} />
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-[hsl(var(--fg))]/60">Showing {data.items.length} of {data.total}</div>
-        <div className="flex gap-2">
-          {data.page > 1 ? <Button asChild variant="secondary"><Link href={`/library?${new URLSearchParams({ ...baseParams, page: String(data.page - 1) })}`}>Previous</Link></Button> : null}
-          {data.page < data.totalPages ? <Button asChild><Link href={`/library?${new URLSearchParams({ ...baseParams, page: String(data.page + 1) })}`}>Next</Link></Button> : null}
-        </div>
-      </div>
+      <GalleryPagination page={data.page} pageSize={data.pageSize} total={data.total} totalPages={data.totalPages} hrefForPage={pageHref} />
     </AppShell>
   );
 }
