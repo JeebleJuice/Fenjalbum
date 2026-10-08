@@ -83,7 +83,7 @@ export function AlbumMediaPicker({
           <p className="text-sm uppercase tracking-[0.25em] text-[hsl(var(--fg))]/55">From gallery</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight">Add existing media to this album</h2>
           <p className="mt-2 max-w-2xl text-sm text-[hsl(var(--fg))]/65">
-            Select items from your gallery and move them into {albumTitle} without reuploading.
+            Select items from your gallery and add them to {albumTitle} without removing them from other albums.
           </p>
         </div>
         <div className="flex items-center gap-2">

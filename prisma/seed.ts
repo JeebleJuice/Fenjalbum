@@ -85,8 +85,7 @@ async function main() {
             thumbPath: demo.thumbPath,
             posterPath: demo.posterPath,
             processingStatus: "READY",
-            albumId: album.id,
-            albumOrder: 0
+            albums: { create: { albumId: album.id, albumOrder: 0 } }
           }
         });
         await prisma.album.update({

@@ -7,13 +7,20 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const { id } = await params;
   const album = await prisma.album.findUnique({
     where: { id },
-    include: { media: { where: { trashedAt: null }, orderBy: { albumOrder: "asc" }, include: { tags: { include: { tag: true } } } } }
+    include: {
+      memberships: {
+        where: { media: { trashedAt: null } },
+        orderBy: [{ albumOrder: "asc" }, { addedAt: "asc" }],
+        include: { media: { include: { tags: { include: { tag: true } } } } }
+      }
+    }
   });
   if (!album) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({
     album: {
       ...album,
-      media: album.media.map((item) => ({ ...item, size: item.size.toString() }))
+      memberships: undefined,
+      media: album.memberships.map(({ media }) => ({ ...media, size: media.size.toString() }))
     }
   });
 }
@@ -37,9 +44,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   await requireAdmin();
   await requireCsrfToken(request);
   const { id } = await params;
-  await prisma.$transaction([
-    prisma.media.updateMany({ where: { albumId: id }, data: { albumId: null } }),
-    prisma.album.delete({ where: { id } })
-  ]);
+  await prisma.album.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

@@ -18,7 +18,10 @@ export default async function MediaPage({
   const { returnTo = "/" } = await searchParams;
   const current = await prisma.media.findFirst({
     where: { id, trashedAt: null },
-    include: { album: true, tags: { include: { tag: true } } }
+    include: {
+      albums: { include: { album: true }, orderBy: { addedAt: "asc" } },
+      tags: { include: { tag: true } }
+    }
   });
   if (!current) notFound();
   const albums = await prisma.album.findMany({ orderBy: { sortOrder: "asc" } });
@@ -42,8 +45,8 @@ export default async function MediaPage({
         uploadedAt: current.uploadedAt.toISOString(),
         captureAt: current.captureAt?.toISOString() ?? null,
         favorite: current.favorite,
-        albumId: current.albumId,
-        albumTitle: current.album?.title ?? null,
+        albumIds: current.albums.map((membership) => membership.albumId),
+        albumTitles: current.albums.map((membership) => membership.album.title),
         tags: current.tags.map((relation) => relation.tag.name),
         src: `/api/media/${current.id}${current.playbackPath ? "?variant=playback" : ""}`,
         posterSrc: current.posterPath ? `/api/media/${current.id}?variant=poster` : null,

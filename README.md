@@ -50,6 +50,7 @@ Fenjalbum is a private media library for a home server or local machine.
 
 - Uploaded files arrive through a streamed multipart upload endpoint.
 - Files are written to a temporary upload directory first.
+- On iOS, photos and videos use separate inputs so video selection avoids WebKit's unreliable multiple-media picker path.
 - A SHA-256 hash is used for duplicate detection.
 - Originals are moved into the configured media storage root using normalized filenames.
 - A background worker extracts metadata and generates image thumbnails or video posters.
@@ -59,12 +60,15 @@ Fenjalbum is a private media library for a home server or local machine.
 
 - Login and logout
 - Responsive sidebar navigation with active-page highlighting and a mobile drawer
-- Browse all media
-- Filter by photo/video, album, favorites, search, sort, and date
+- Database-driven Discover page with recent media and album highlights
+- Browse the complete Library
+- Filter by photo/video, album, favorites, text, exact dates, date ranges, and sort order
+- Explore geotagged media on an interactive OpenStreetMap map with nearby items grouped together
 - Open full-screen photo and video viewer
 - Upload one or many files
 - Upload an entire browser-supported folder or recursively import a server directory
 - Create, rename, and manage albums
+- Add the same photo or video to multiple albums without duplicating the stored original
 - Mark items as favorites
 - Admin review of media, albums, and settings
 - Retry failed processing jobs

@@ -76,6 +76,33 @@ body {
   margin-bottom: 1rem;
 }
 
+.leaflet-container {
+  background: hsl(var(--muted));
+  color: #111827;
+  font-family: inherit;
+}
+
+.fenjalbum-map-popup {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fenjalbum-map-popup > a {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  align-items: center;
+  gap: 0.55rem;
+  color: #111827;
+  text-decoration: none;
+}
+
+.fenjalbum-map-popup img {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.65rem;
+  object-fit: cover;
+}
+
 .focus-ring {
   @apply outline-none ring-2 ring-offset-2 ring-offset-[hsl(var(--bg))] ring-[hsl(var(--accent))];
 }

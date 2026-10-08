@@ -25,9 +25,9 @@ export async function proxy(request: NextRequest) {
   const responseHeaders = new Headers();
   responseHeaders.set("X-Frame-Options", "DENY");
   responseHeaders.set("X-Content-Type-Options", "nosniff");
-  responseHeaders.set("Referrer-Policy", "same-origin");
+  responseHeaders.set("Referrer-Policy", "strict-origin-when-cross-origin");
   responseHeaders.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  responseHeaders.set("Content-Security-Policy", ["default-src 'self'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'", "img-src 'self' data: blob:", "media-src 'self' blob:", "style-src 'self' 'unsafe-inline'", "script-src 'self' 'unsafe-inline' 'unsafe-eval'", "connect-src 'self'", "font-src 'self' data:"].join("; "));
+  responseHeaders.set("Content-Security-Policy", ["default-src 'self'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'", "img-src 'self' data: blob: https://tile.openstreetmap.org", "media-src 'self' blob:", "style-src 'self' 'unsafe-inline'", "script-src 'self' 'unsafe-inline' 'unsafe-eval'", "connect-src 'self'", "font-src 'self' data:"].join("; "));
 
   if (!isProtected(pathname)) return NextResponse.next({ headers: responseHeaders });
   if (!(await hasValidToken(request))) {

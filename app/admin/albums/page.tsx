@@ -13,7 +13,7 @@ export default async function AdminAlbumsPage() {
   if (!user || user.role !== "ADMIN") notFound();
   const albums = await prisma.album.findMany({
     orderBy: [{ sortOrder: "asc" }],
-    include: { media: true }
+    include: { memberships: true }
   });
   return (
     <AppShell user={user}>
@@ -27,7 +27,7 @@ export default async function AdminAlbumsPage() {
           <Panel key={album.id} className="p-4">
             <div className="font-semibold">{album.title}</div>
             <div className="mt-1 text-sm text-[hsl(var(--fg))]/60">{album.description ?? "No description"}</div>
-            <div className="mt-3 text-xs text-[hsl(var(--fg))]/55">{album.media.length} media items</div>
+            <div className="mt-3 text-xs text-[hsl(var(--fg))]/55">{album.memberships.length} media items</div>
             <div className="mt-4 flex gap-2">
               <Button asChild variant="secondary"><Link href={`/albums/${album.id}`}>Open</Link></Button>
             </div>

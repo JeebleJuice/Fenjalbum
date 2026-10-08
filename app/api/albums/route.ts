@@ -6,9 +6,17 @@ export async function GET() {
   await requireUser();
   const albums = await prisma.album.findMany({
     orderBy: { sortOrder: "asc" },
-    include: { media: true }
+    include: { memberships: { include: { media: true } } }
   });
-  return NextResponse.json({ albums });
+  return NextResponse.json({
+    albums: albums.map((album) => ({
+      ...album,
+      memberships: album.memberships.map((membership) => ({
+        ...membership,
+        media: { ...membership.media, size: membership.media.size.toString() }
+      }))
+    }))
+  });
 }
 
 export async function POST(request: NextRequest) {

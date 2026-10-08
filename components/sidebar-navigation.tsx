@@ -3,20 +3,28 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Album, Heart, Images, Menu, Shield, Upload, X } from "lucide-react";
+import { Album, Compass, Heart, Images, LibraryBig, MapPinned, Menu, Shield, Upload, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { href: "/", label: "Gallery", icon: Images },
+  { href: "/", label: "Discover", icon: Compass },
+  { href: "/library", label: "Library", icon: LibraryBig },
   { href: "/albums", label: "Albums", icon: Album },
+  { href: "/map", label: "Places", icon: MapPinned },
   { href: "/favorites", label: "Favorites", icon: Heart },
   { href: "/upload", label: "Upload", icon: Upload },
   { href: "/admin", label: "Administration", icon: Shield, adminOnly: true }
 ];
 
-export function SidebarNavigation({ user }: { user: { name: string; email: string; role?: "ADMIN" | "USER" } }) {
+export function SidebarNavigation({
+  user,
+  albums
+}: {
+  user: { name: string; email: string; role?: "ADMIN" | "USER" };
+  albums: Array<{ id: string; title: string }>;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -53,26 +61,50 @@ export function SidebarNavigation({ user }: { user: { name: string; email: strin
           </button>
         </div>
 
-        <nav className="mt-7 flex-1 space-y-1" aria-label="Primary navigation">
+        <nav className="mt-7 flex-1 space-y-1 overflow-y-auto pr-1" aria-label="Primary navigation">
           {links.map((item) => {
             const Icon = item.icon;
             const isActive = active(item.href);
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition",
-                  isActive
-                    ? "bg-[hsl(var(--fg))] text-[hsl(var(--bg))] shadow-lg shadow-black/10"
-                    : "text-[hsl(var(--fg))]/70 hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--fg))]"
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                {item.label}
-              </Link>
+              <div key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition",
+                    isActive
+                      ? "bg-[hsl(var(--fg))] text-[hsl(var(--bg))] shadow-lg shadow-black/10"
+                      : "text-[hsl(var(--fg))]/70 hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--fg))]"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+                {item.href === "/albums" && albums.length ? (
+                  <div className="ml-5 mt-1 space-y-0.5 border-l border-[hsl(var(--border))] pl-3">
+                    {albums.map((album) => {
+                      const albumActive = pathname === `/albums/${album.id}`;
+                      return (
+                        <Link
+                          key={album.id}
+                          href={`/albums/${album.id}`}
+                          onClick={() => setOpen(false)}
+                          aria-current={albumActive ? "page" : undefined}
+                          className={cn(
+                            "block truncate rounded-xl px-3 py-2 text-xs transition",
+                            albumActive
+                              ? "bg-[hsl(var(--accent))]/15 font-semibold text-[hsl(var(--accent))]"
+                              : "text-[hsl(var(--fg))]/55 hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--fg))]"
+                          )}
+                        >
+                          {album.title}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
             );
           })}
         </nav>

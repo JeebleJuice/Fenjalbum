@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Download, Edit3, Heart, Trash2, X } from "lucide-react";
-import { Button, Input, Panel, Select, Textarea } from "@/components/ui";
+import { Button, Input, Panel, Textarea } from "@/components/ui";
 
 export type ViewerItem = {
   id: string;
@@ -19,8 +19,8 @@ export type ViewerItem = {
   uploadedAt: string;
   captureAt: string | null;
   favorite: boolean;
-  albumId: string | null;
-  albumTitle: string | null;
+  albumIds: string[];
+  albumTitles: string[];
   tags: string[];
   src: string;
   posterSrc: string | null;
@@ -112,7 +112,7 @@ export function MediaViewer({
           <div className="min-w-0">
             <div className="truncate text-sm font-medium">{item.title ?? item.originalFilename}</div>
             <div className="truncate text-xs text-[hsl(var(--fg))]/60">
-              {item.albumTitle ?? "No album"} · {new Date(item.uploadedAt).toLocaleString()}
+              {item.albumTitles.join(", ") || "No album"} · {new Date(item.uploadedAt).toLocaleString()}
             </div>
           </div>
         </div>
@@ -194,8 +194,8 @@ export function MediaViewer({
                 <dd className="text-right">{new Date(item.uploadedAt).toLocaleString()}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-[hsl(var(--fg))]/60">Album</dt>
-                <dd className="text-right">{item.albumTitle ?? "No album"}</dd>
+                <dt className="text-[hsl(var(--fg))]/60">Albums</dt>
+                <dd className="text-right">{item.albumTitles.join(", ") || "No album"}</dd>
               </div>
             </dl>
             <div className="flex flex-wrap gap-2">
@@ -224,15 +224,21 @@ export function MediaViewer({
                   <Input id="captureAt" name="captureAt" type="datetime-local" defaultValue={localDateTimeValue(item.captureAt)} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Album</label>
-                  <Select name="albumId" defaultValue={item.albumId ?? ""}>
-                    <option value="">No album</option>
-                    {albums.map((album) => (
-                      <option key={album.id} value={album.id}>
-                        {album.title}
-                      </option>
-                    ))}
-                  </Select>
+                  <div className="text-sm font-medium">Albums</div>
+                  <div className="max-h-44 space-y-2 overflow-y-auto rounded-2xl border border-[hsl(var(--border))] p-3">
+                    {albums.length ? albums.map((album) => (
+                      <label key={album.id} className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-[hsl(var(--muted))]">
+                        <input
+                          type="checkbox"
+                          name="albumIds"
+                          value={album.id}
+                          defaultChecked={item.albumIds.includes(album.id)}
+                          className="h-4 w-4 accent-[hsl(var(--accent))]"
+                        />
+                        <span className="text-sm">{album.title}</span>
+                      </label>
+                    )) : <p className="text-sm text-[hsl(var(--fg))]/60">Create an album first.</p>}
+                  </div>
                 </div>
                 <Input name="tags" defaultValue={item.tags.join(", ")} placeholder="comma, separated, tags" />
                 <input type="hidden" name="favorite" value={String(favorite)} />

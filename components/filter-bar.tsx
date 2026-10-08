@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, SlidersHorizontal } from "lucide-react";
+import { CalendarRange, Search, SlidersHorizontal } from "lucide-react";
 import { Badge, Button, Input, Select } from "@/components/ui";
 
 export type GalleryQuery = {
@@ -11,6 +11,8 @@ export type GalleryQuery = {
   favorite?: string;
   page?: string;
   view?: string;
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 export function FilterBar({
@@ -31,10 +33,20 @@ export function FilterBar({
         <Input
           name="q"
           defaultValue={query.q ?? ""}
-          placeholder="Search photos and videos"
+          placeholder="Search names, tags, albums, or 21/03/2026 - 25/4/2026"
           className="h-[3.25rem] rounded-full border-transparent bg-[hsl(var(--muted))] pl-12 pr-5 text-base shadow-none focus:border-[hsl(var(--accent))]"
         />
       </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="space-y-1.5 text-xs font-medium text-[hsl(var(--fg))]/55">
+          <span className="flex items-center gap-2"><CalendarRange className="h-4 w-4" /> Captured from</span>
+          <Input type="date" name="dateFrom" defaultValue={query.dateFrom ?? ""} />
+        </label>
+        <label className="space-y-1.5 text-xs font-medium text-[hsl(var(--fg))]/55">
+          <span className="flex items-center gap-2"><CalendarRange className="h-4 w-4" /> Captured through</span>
+          <Input type="date" name="dateTo" defaultValue={query.dateTo ?? ""} />
+        </label>
+      </div>
       <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-[hsl(var(--fg))]/45">
         <SlidersHorizontal className="h-4 w-4" />
         Refine results
@@ -70,7 +82,7 @@ export function FilterBar({
         <Button type="reset" variant="secondary" onClick={() => (window.location.href = window.location.pathname)}>
           Clear filters
         </Button>
-        {query.q || query.mediaType || query.albumId || query.sort || query.favorite ? (
+        {query.q || query.mediaType || query.albumId || query.sort || query.favorite || query.dateFrom || query.dateTo ? (
           <Badge className="bg-[hsl(var(--muted))]">Active filters</Badge>
         ) : (
           <Badge>Default view</Badge>

@@ -14,7 +14,7 @@ export default async function AdminMediaPage() {
   if (!user || user.role !== "ADMIN") notFound();
   const media = await prisma.media.findMany({
     orderBy: [{ uploadedAt: "desc" }],
-    include: { album: true },
+    include: { albums: { include: { album: true }, orderBy: { addedAt: "asc" } } },
     take: 100
   });
   const failedJobs = await prisma.processingJob.findMany({
@@ -38,7 +38,7 @@ export default async function AdminMediaPage() {
                 {item.title ?? item.originalFilename}
               </Link>
               <div className="truncate text-sm text-[hsl(var(--fg))]/60">
-                {item.mediaType} · {item.album?.title ?? "No album"} · {item.processingStatus}
+                {item.mediaType} · {item.albums.map((membership) => membership.album.title).join(", ") || "No album"} · {item.processingStatus}
               </div>
             </div>
             <div className="text-xs text-[hsl(var(--fg))]/55">{new Date(item.uploadedAt).toLocaleString()}</div>

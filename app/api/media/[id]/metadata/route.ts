@@ -10,9 +10,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const title = String(form.get("title") ?? "").trim() || null;
   const description = String(form.get("description") ?? "").trim() || null;
   const captureAtRaw = String(form.get("captureAt") ?? "").trim();
-  const albumId = String(form.get("albumId") ?? "").trim() || null;
+  const albumIds = Array.from(new Set(form.getAll("albumIds").map((value) => String(value).trim()).filter(Boolean)));
   const favorite = String(form.get("favorite") ?? "") === "true";
-  const albumOrderRaw = String(form.get("albumOrder") ?? "").trim();
   const tagList = String(form.get("tags") ?? "")
     .split(",")
     .map((tag) => tag.trim().toLowerCase())
@@ -22,11 +21,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (captureAt && Number.isNaN(captureAt.getTime())) {
     return NextResponse.json({ error: "Capture date is not valid." }, { status: 400 });
   }
-  const albumOrder = albumOrderRaw ? Number(albumOrderRaw) : undefined;
-  if (albumOrder !== undefined && !Number.isFinite(albumOrder)) {
-    return NextResponse.json({ error: "Album order must be a number." }, { status: 400 });
-  }
-
   const tagRows = await Promise.all(
     tagList.map((name) =>
       prisma.tag.upsert({
@@ -44,11 +38,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         title,
         description,
         captureAt,
-        albumId,
-        favorite,
-        albumOrder
+        favorite
       }
     });
+    await tx.albumMedia.deleteMany({
+      where: albumIds.length > 0
+        ? { mediaId: id, albumId: { notIn: albumIds } }
+        : { mediaId: id }
+    });
+    if (albumIds.length > 0) {
+      await tx.albumMedia.createMany({
+        data: albumIds.map((albumId) => ({ albumId, mediaId: id })),
+        skipDuplicates: true
+      });
+    }
     await tx.mediaTag.deleteMany({ where: { mediaId: id } });
     if (tagRows.length > 0) {
       await tx.mediaTag.createMany({

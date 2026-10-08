@@ -60,6 +60,13 @@ export async function importUploadedFile(file: UploadedTempFile) {
   const hash = await sha256File(file.tmpPath);
   const duplicate = await prisma.media.findUnique({ where: { hash } });
   if (duplicate) {
+    if (file.albumId) {
+      await prisma.albumMedia.upsert({
+        where: { albumId_mediaId: { albumId: file.albumId, mediaId: duplicate.id } },
+        update: {},
+        create: { albumId: file.albumId, mediaId: duplicate.id }
+      });
+    }
     await fs.unlink(file.tmpPath).catch(() => undefined);
     return { duplicate: true as const, existing: duplicate };
   }
@@ -84,7 +91,9 @@ export async function importUploadedFile(file: UploadedTempFile) {
           size: BigInt(file.receivedSize),
           hash,
           storagePath: finalPath,
-          albumId: file.albumId || null,
+          albums: file.albumId
+            ? { create: { album: { connect: { id: file.albumId } } } }
+            : undefined,
           processingStatus: "PENDING"
         }
       });

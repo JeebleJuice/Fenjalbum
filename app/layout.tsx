@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeScript } from "@/components/theme-script";
 import { PwaRegister } from "@/components/pwa-register";
+import "leaflet/dist/leaflet.css";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {

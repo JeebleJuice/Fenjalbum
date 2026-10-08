@@ -12,10 +12,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "No media selected" }, { status: 400 });
   }
 
-  const result = await prisma.media.updateMany({
-    where: { id: { in: mediaIds } },
-    data: { albumId: id }
+  const existing = await prisma.media.findMany({
+    where: { id: { in: mediaIds }, trashedAt: null },
+    select: { id: true }
+  });
+  const result = await prisma.albumMedia.createMany({
+    data: existing.map((media) => ({ albumId: id, mediaId: media.id })),
+    skipDuplicates: true
   });
 
-  return NextResponse.json({ ok: true, updated: result.count });
+  return NextResponse.json({ ok: true, added: result.count });
 }

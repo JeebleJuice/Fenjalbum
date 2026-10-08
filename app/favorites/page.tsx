@@ -13,7 +13,7 @@ export default async function FavoritesPage() {
   if (!user) notFound();
   const media = await prisma.media.findMany({
     where: { favorite: true, trashedAt: null },
-    include: { album: true },
+    include: { albums: { include: { album: true }, orderBy: { addedAt: "asc" } } },
     orderBy: [{ uploadedAt: "desc" }]
   });
   return (
@@ -24,6 +24,7 @@ export default async function FavoritesPage() {
         <p className="mt-2 text-sm text-[hsl(var(--fg))]/65">Pinned media from across your library.</p>
       </Panel>
       <MediaGrid
+        returnTo="/favorites"
         items={media.map((item) => ({
           id: item.id,
           title: item.title,
@@ -44,7 +45,7 @@ export default async function FavoritesPage() {
           uploadedAt: item.uploadedAt.toISOString(),
           captureAt: item.captureAt?.toISOString() ?? null,
           favorite: item.favorite,
-          albumTitle: item.album?.title ?? null,
+          albumTitle: item.albums.map((membership) => membership.album.title).join(", ") || null,
           processingStatus: item.processingStatus
         }))}
       />

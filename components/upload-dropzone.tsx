@@ -55,6 +55,8 @@ export function UploadDropzone({
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const filesInputRef = useRef<HTMLInputElement | null>(null);
   const folderRef = useRef<HTMLInputElement | null>(null);
   const filesRef = useRef<File[]>([]);
   const controllerRef = useRef<AbortController | null>(null);
@@ -265,7 +267,7 @@ export function UploadDropzone({
         </div>
         <div>
           <h2 className="text-lg font-semibold">Drop files here</h2>
-          <p className="text-sm text-[hsl(var(--fg))]/60">Large selections are uploaded in a controlled queue—three files at a time, with automatic retries.</p>
+          <p className="text-sm text-[hsl(var(--fg))]/60">Large photo selections are queued three at a time. Videos use a separate iPhone-safe picker.</p>
         </div>
         <label className="w-full max-w-md text-left text-xs font-medium uppercase tracking-[0.16em] text-[hsl(var(--fg))]/55">
           Upload destination
@@ -284,8 +286,10 @@ export function UploadDropzone({
         </label>
         <div className="flex flex-wrap justify-center gap-3">
           <Button type="button" disabled={isUploading} onClick={() => inputRef.current?.click()}>
-            Choose photos and videos
+            Choose photos
           </Button>
+          <Button type="button" disabled={isUploading} variant="secondary" onClick={() => videoInputRef.current?.click()}>Choose one video</Button>
+          <Button type="button" disabled={isUploading} variant="secondary" onClick={() => filesInputRef.current?.click()}>Choose from Files</Button>
           <Button type="button" disabled={isUploading} variant="secondary" onClick={() => folderRef.current?.click()}>Choose entire folder</Button>
           {isUploading ? (
             <Button type="button" variant="danger" onClick={cancelUploads}>
@@ -310,7 +314,27 @@ export function UploadDropzone({
           ref={inputRef}
           type="file"
           multiple
-          accept="image/*,video/*"
+          accept="image/*"
+          className="hidden"
+          onChange={(event) => {
+            if (event.target.files) sendFiles(event.target.files);
+            event.target.value = "";
+          }}
+        />
+        <input
+          ref={videoInputRef}
+          type="file"
+          accept="video/*"
+          className="hidden"
+          onChange={(event) => {
+            if (event.target.files) sendFiles(event.target.files);
+            event.target.value = "";
+          }}
+        />
+        <input
+          ref={filesInputRef}
+          type="file"
+          multiple
           className="hidden"
           onChange={(event) => {
             if (event.target.files) sendFiles(event.target.files);

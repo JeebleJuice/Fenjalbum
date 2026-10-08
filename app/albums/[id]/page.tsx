@@ -27,13 +27,20 @@ export default async function AlbumPage({
 
   const album = await prisma.album.findUnique({
     where: { id },
-    include: { media: { where: { trashedAt: null }, orderBy: [{ albumOrder: "asc" }, { uploadedAt: "desc" }], include: { album: true } } }
+    include: {
+      memberships: {
+        where: { media: { trashedAt: null } },
+        orderBy: [{ albumOrder: "asc" }, { addedAt: "asc" }],
+        include: { media: { include: { albums: { include: { album: true }, orderBy: { addedAt: "asc" } } } } }
+      }
+    }
   });
   if (!album) notFound();
+  const albumMedia = album.memberships.map((membership) => membership.media);
 
   const availableMedia = await prisma.media.findMany({
-    where: { id: { notIn: album.media.map((media) => media.id) }, trashedAt: null },
-    include: { album: true },
+    where: { albums: { none: { albumId: album.id } }, trashedAt: null },
+    include: { albums: { include: { album: true }, orderBy: { addedAt: "asc" } } },
     orderBy: [{ uploadedAt: "desc" }],
     take: 24
   });
@@ -52,14 +59,14 @@ export default async function AlbumPage({
           ? `/api/media/${media.id}?variant=thumb`
           : null,
     uploadedAt: media.uploadedAt.toISOString(),
-    albumTitle: media.album?.title ?? null,
+    albumTitle: media.albums.map((membership) => membership.album.title).join(", ") || null,
     processingStatus: media.processingStatus
   }));
 
-  const hasProcessing = album.media.some((media) => media.processingStatus !== "READY");
-  const totalPages = Math.max(1, Math.ceil(album.media.length / pageSize));
+  const hasProcessing = albumMedia.some((media) => media.processingStatus !== "READY");
+  const totalPages = Math.max(1, Math.ceil(albumMedia.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pagedMedia = album.media.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pagedMedia = albumMedia.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const pagedItems = pagedMedia.map((media) => ({
     id: media.id,
     title: media.title,
@@ -123,11 +130,11 @@ export default async function AlbumPage({
         </div>
       </Panel>
 
-      <MediaGrid items={pagedItems} density={view} />
+      <MediaGrid items={pagedItems} density={view} returnTo={`/albums/${album.id}?view=${view}&page=${currentPage}`} />
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-[hsl(var(--fg))]/60">
-          Showing {Math.min(pageSize, pagedMedia.length)} of {album.media.length}
+          Showing {Math.min(pageSize, pagedMedia.length)} of {albumMedia.length}
         </div>
         <div className="flex gap-2">
           {currentPage > 1 ? (

@@ -22,11 +22,14 @@ export type GalleryItem = {
 
 export function MediaGrid({
   items,
-  density = "large"
+  density = "large",
+  returnTo
 }: {
   items: GalleryItem[];
   density?: "compact" | "comfortable" | "large";
+  returnTo?: string;
 }) {
+  const mediaHref = (id: string) => `/media/${id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
   if (items.length === 0) {
     return (
       <Panel className="p-10 text-center">
@@ -45,7 +48,7 @@ export function MediaGrid({
         {items.map((item) => (
           <Link
             key={item.id}
-            href={`/media/${item.id}`}
+            href={mediaHref(item.id)}
             className="group overflow-hidden rounded-[1rem] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
           >
             <div className="relative overflow-hidden">
@@ -82,7 +85,7 @@ export function MediaGrid({
         {items.map((item) => (
           <Link
             key={item.id}
-            href={`/media/${item.id}`}
+            href={mediaHref(item.id)}
             className="group overflow-hidden rounded-[1.25rem] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
           >
             <div className="relative overflow-hidden">
@@ -118,7 +121,7 @@ export function MediaGrid({
       {items.map((item) => (
         <article key={item.id} className="masonry-item">
           <Link
-            href={`/media/${item.id}`}
+            href={mediaHref(item.id)}
             className="group block overflow-hidden rounded-[1.6rem] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
           >
             <div className="relative overflow-hidden">

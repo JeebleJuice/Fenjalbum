@@ -12,7 +12,7 @@ export async function getGalleryData(filters: GalleryFilters) {
   const currentPage = Math.min(page, totalPages);
   const items = await prisma.media.findMany({
     where: buildMediaWhere(filters),
-    include: { album: true },
+    include: { albums: { include: { album: true }, orderBy: { addedAt: "asc" } } },
     orderBy: buildMediaOrderBy(filters),
     skip: (currentPage - 1) * pageSize,
     take: pageSize
