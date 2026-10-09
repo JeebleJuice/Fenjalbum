@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Album, Images, LayoutDashboard, Settings, Trash2, Users } from "lucide-react";
+import { Album, Copy, Images, LayoutDashboard, Settings, Trash2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const adminLinks = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/media", label: "Media", icon: Images },
+  { href: "/admin/duplicates", label: "Duplicates", icon: Copy },
   { href: "/admin/albums", label: "Albums", icon: Album },
   { href: "/admin/trash", label: "Trash", icon: Trash2 },
   { href: "/admin/users", label: "Users", icon: Users },

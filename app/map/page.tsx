@@ -14,6 +14,16 @@ export default async function MapPage() {
   if (!user) notFound();
   const media = await prisma.media.findMany({
     where: { trashedAt: null, latitude: { not: null }, longitude: { not: null } },
+    select: {
+      id: true,
+      title: true,
+      originalFilename: true,
+      latitude: true,
+      longitude: true,
+      captureAt: true,
+      thumbPath: true,
+      posterPath: true
+    },
     orderBy: [{ captureAt: "desc" }, { uploadedAt: "desc" }],
     take: 5000
   });

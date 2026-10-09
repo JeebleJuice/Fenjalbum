@@ -10,6 +10,7 @@ import { prisma } from "@/lib/db";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui";
 import { formatCaptureDate } from "@/lib/date-format";
+import { mediaCardSelect } from "@/lib/gallery-data";
 
 function previewSrc(media: { id: string; mediaType: "PHOTO" | "VIDEO"; thumbPath: string | null; posterPath: string | null }) {
   if (media.thumbPath) return `/api/media/${media.id}?variant=thumb`;
@@ -32,7 +33,7 @@ export default async function DiscoverPage() {
   const [chosenMedia, albums, mediaCount, albumCount, favoriteCount, mappedCount] = await Promise.all([
     prisma.media.findMany({
       where: { id: { in: chosenIds } },
-      include: { albums: { include: { album: true }, orderBy: { addedAt: "asc" } } }
+      select: mediaCardSelect
     }),
     prisma.album.findMany({
       orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
@@ -40,7 +41,7 @@ export default async function DiscoverPage() {
         memberships: {
           where: { media: { trashedAt: null, processingStatus: "READY" } },
           orderBy: [{ albumOrder: "asc" }, { addedAt: "desc" }],
-          include: { media: true },
+          include: { media: { select: mediaCardSelect } },
           take: 1
         },
         _count: { select: { memberships: true } }

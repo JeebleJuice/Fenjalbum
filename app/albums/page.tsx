@@ -22,7 +22,19 @@ export default async function AlbumsPage({ searchParams }: { searchParams: Promi
         memberships: {
           where: { media: { trashedAt: null } },
           orderBy: [{ albumOrder: "asc" }, { addedAt: "asc" }],
-          include: { media: true },
+          include: {
+            media: {
+              select: {
+                id: true,
+                title: true,
+                originalFilename: true,
+                mediaType: true,
+                thumbPath: true,
+                posterPath: true,
+                processingStatus: true
+              }
+            }
+          },
           take: 3
         },
         _count: { select: { memberships: { where: { media: { trashedAt: null } } } } }

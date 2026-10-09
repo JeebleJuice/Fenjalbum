@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { ensureStorageRoots, mediaPosterPath, mediaThumbPath, removeTree } from "@/lib/storage";
 import { fileTypeFromPath } from "@/lib/file-signature";
 import { env } from "@/lib/env";
+import { perceptualHash } from "@/lib/perceptual-hash";
 
 async function ensureParent(filePath: string) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -181,6 +182,7 @@ export async function processMediaJob(mediaId: string) {
     const result = isVideo
       ? await processVideo(mediaId, media.storagePath, media.mimeType)
       : await processImage(mediaId, media.storagePath, media.mimeType);
+    const visualHash = isVideo ? null : await perceptualHash(result.thumbPath);
     await prisma.media.update({
       where: { id: mediaId },
       data: {
@@ -193,6 +195,7 @@ export async function processMediaJob(mediaId: string) {
         metadata: { technical: result.metadata ?? null, exif: extracted.raw } as Prisma.InputJsonValue,
         processingStatus: "READY",
         processingError: null,
+        perceptualHash: visualHash,
         captureAt: media.captureAt ?? extracted.captureAt ?? undefined,
         latitude: extracted.latitude,
         longitude: extracted.longitude
@@ -205,6 +208,35 @@ export async function processMediaJob(mediaId: string) {
     });
     throw error;
   }
+}
+
+export async function backfillNextPerceptualHash() {
+  const media = await prisma.media.findFirst({
+    where: {
+      mediaType: "PHOTO",
+      processingStatus: "READY",
+      perceptualHash: null,
+      thumbPath: { not: null },
+      trashedAt: null
+    },
+    orderBy: [{ uploadedAt: "asc" }, { id: "asc" }]
+  });
+  if (!media?.thumbPath) return false;
+
+  try {
+    const hash = await perceptualHash(media.thumbPath);
+    await prisma.media.updateMany({
+      where: { id: media.id, perceptualHash: null },
+      data: { perceptualHash: hash }
+    });
+  } catch (error) {
+    console.warn(`Could not fingerprint ${media.id}:`, error instanceof Error ? error.message : error);
+    await prisma.media.updateMany({
+      where: { id: media.id, perceptualHash: null },
+      data: { perceptualHash: "unavailable" }
+    });
+  }
+  return true;
 }
 
 export async function deleteMediaFiles(mediaId: string) {

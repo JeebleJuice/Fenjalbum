@@ -91,6 +91,7 @@ model Media {
   favorite         Boolean            @default(false)
   orientation      Int?
   hash             String             @unique
+  perceptualHash   String?
   storagePath      String
   thumbPath        String?
   posterPath       String?
@@ -108,6 +109,10 @@ model Media {
   @@index([uploadedAt])
   @@index([processingStatus])
   @@index([trashedAt])
+  @@index([trashedAt, captureAt])
+  @@index([trashedAt, uploadedAt, id])
+  @@index([trashedAt, favorite, captureAt])
+  @@index([perceptualHash])
 }
 
 model AlbumMedia {

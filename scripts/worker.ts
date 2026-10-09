@@ -16,7 +16,7 @@ async function runMigrations() {
 await runMigrations();
 
 const { prisma } = await import("@/lib/db");
-const { processMediaJob } = await import("@/lib/media-processing");
+const { backfillNextPerceptualHash, processMediaJob } = await import("@/lib/media-processing");
 
 const POLL_INTERVAL_MS = Number(process.env.WORKER_POLL_MS ?? 2500);
 
@@ -45,6 +45,7 @@ async function runJobLoop() {
   while (!stopped) {
     const job = await claimJob();
     if (!job) {
+      await backfillNextPerceptualHash();
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
       continue;
     }

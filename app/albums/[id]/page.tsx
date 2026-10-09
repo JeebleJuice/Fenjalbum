@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { buildMediaWhere } from "@/lib/filters";
+import { mediaCardSelect } from "@/lib/gallery-data";
 import { AppShell } from "@/components/app-shell";
 import { MediaGrid } from "@/components/gallery";
 import { Button, Input, Panel } from "@/components/ui";
@@ -44,7 +45,7 @@ export default async function AlbumPage({
   const memberships = await prisma.albumMedia.findMany({
     where: membershipWhere,
     orderBy: [{ albumOrder: "asc" }, { addedAt: "asc" }],
-    include: { media: true },
+    include: { media: { select: mediaCardSelect } },
     skip: (currentPage - 1) * pageSize,
     take: pageSize
   });
