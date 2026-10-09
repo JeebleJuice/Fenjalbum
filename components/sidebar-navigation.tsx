@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Album, Compass, Heart, Images, LibraryBig, MapPinned, Menu, Shield, Upload, X } from "lucide-react";
+import { Album, Compass, Heart, Images, LibraryBig, MapPinned, Menu, Search, Shield, Upload, X } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { cn } from "@/lib/utils";
@@ -28,8 +28,12 @@ export function SidebarNavigation({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [albumQuery, setAlbumQuery] = useState("");
 
   const links = navigation.filter((item) => !item.adminOnly || user.role === "ADMIN");
+  const visibleAlbums = albumQuery.trim()
+    ? albums.filter((album) => album.title.toLocaleLowerCase().includes(albumQuery.trim().toLocaleLowerCase()))
+    : albums;
   const active = (href: string) => href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
@@ -84,7 +88,14 @@ export function SidebarNavigation({
                 </Link>
                 {item.href === "/albums" && albums.length ? (
                   <div className="ml-5 mt-1 space-y-0.5 border-l border-[hsl(var(--border))] pl-3">
-                    {albums.map((album) => {
+                    {albums.length > 4 ? (
+                      <label className="relative mb-1 block">
+                        <span className="sr-only">Search albums in navigation</span>
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[hsl(var(--fg))]/40" />
+                        <input value={albumQuery} onChange={(event) => setAlbumQuery(event.target.value)} placeholder="Find album" className="h-8 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))] pl-8 pr-2 text-xs outline-none focus-visible:focus-ring" />
+                      </label>
+                    ) : null}
+                    {visibleAlbums.map((album) => {
                       const albumActive = pathname === `/albums/${album.id}`;
                       return (
                         <Link
@@ -103,6 +114,7 @@ export function SidebarNavigation({
                         </Link>
                       );
                     })}
+                    {albumQuery && !visibleAlbums.length ? <div className="px-3 py-2 text-xs text-[hsl(var(--fg))]/45">No matching albums</div> : null}
                   </div>
                 ) : null}
               </div>

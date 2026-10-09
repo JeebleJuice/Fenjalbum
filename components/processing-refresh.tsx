@@ -3,12 +3,14 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export function ProcessingRefresh({ enabled, intervalMs = 5000 }: { enabled: boolean; intervalMs?: number }) {
+export function ProcessingRefresh({ enabled, intervalMs = 15000 }: { enabled: boolean; intervalMs?: number }) {
   const router = useRouter();
 
   useEffect(() => {
     if (!enabled) return;
-    const timer = window.setInterval(() => router.refresh(), intervalMs);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") router.refresh();
+    }, intervalMs);
     return () => window.clearInterval(timer);
   }, [enabled, intervalMs, router]);
 

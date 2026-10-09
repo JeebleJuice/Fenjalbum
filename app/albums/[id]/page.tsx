@@ -4,45 +4,53 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { buildMediaWhere } from "@/lib/filters";
 import { AppShell } from "@/components/app-shell";
 import { MediaGrid } from "@/components/gallery";
-import { Button, Panel } from "@/components/ui";
+import { Button, Input, Panel } from "@/components/ui";
 import { AlbumPageActions } from "@/components/album-page-actions";
 import { ProcessingRefresh } from "@/components/processing-refresh";
 import { GalleryPagination } from "@/components/pagination";
+import { Search } from "lucide-react";
 
 export default async function AlbumPage({
   params,
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string; view?: string }>;
+  searchParams: Promise<{ page?: string; view?: string; q?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) notFound();
   const { id } = await params;
   const query = await searchParams;
   const page = Math.max(1, Number(query.page ?? "1") || 1);
+  const search = query.q?.trim() ?? "";
   const view = query.view === "compact" ? "compact" : query.view === "comfortable" ? "comfortable" : "large";
   const pageSize = view === "compact" ? 48 : view === "comfortable" ? 24 : 12;
 
   const album = await prisma.album.findUnique({
     where: { id },
-    include: {
-      memberships: {
-        where: { media: { trashedAt: null } },
-        orderBy: [{ albumOrder: "asc" }, { addedAt: "asc" }],
-        include: { media: { include: { albums: { include: { album: true }, orderBy: { addedAt: "asc" } } } } }
-      }
-    }
+    select: { id: true, title: true, description: true }
   });
   if (!album) notFound();
-  const albumMedia = album.memberships.map((membership) => membership.media);
-
-  const hasProcessing = albumMedia.some((media) => media.processingStatus !== "READY");
-  const totalPages = Math.max(1, Math.ceil(albumMedia.length / pageSize));
+  const membershipWhere = {
+    albumId: album.id,
+    media: buildMediaWhere({ q: search || undefined })
+  };
+  const total = await prisma.albumMedia.count({ where: membershipWhere });
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pagedMedia = albumMedia.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const memberships = await prisma.albumMedia.findMany({
+    where: membershipWhere,
+    orderBy: [{ albumOrder: "asc" }, { addedAt: "asc" }],
+    include: { media: true },
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize
+  });
+  const pagedMedia = memberships.map((membership) => membership.media);
+
+  const hasProcessing = pagedMedia.some((media) => media.processingStatus !== "READY");
   const pagedItems = pagedMedia.map((media) => ({
     id: media.id,
     title: media.title,
@@ -78,6 +86,9 @@ export default async function AlbumPage({
     next.set("page", String(nextPage));
     return `/albums/${album.id}?${next.toString()}`;
   };
+  const returnParams = new URLSearchParams(query);
+  returnParams.set("view", view);
+  returnParams.set("page", String(currentPage));
 
   return (
     <AppShell user={user}>
@@ -106,9 +117,29 @@ export default async function AlbumPage({
         </div>
       </Panel>
 
-      <MediaGrid items={pagedItems} density={view} returnTo={`/albums/${album.id}?view=${view}&page=${currentPage}`} />
+      <form className="flex min-w-0 flex-wrap items-center gap-2" action={`/albums/${album.id}`} method="get">
+        <input type="hidden" name="view" value={view} />
+        <div className="relative min-w-0 flex-1 sm:max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--fg))]/45" />
+          <Input
+            name="q"
+            defaultValue={search}
+            placeholder="Search this album"
+            aria-label="Search media in this album"
+            className="w-full pl-9"
+          />
+        </div>
+        <Button type="submit" variant="secondary">Search</Button>
+        {search ? (
+          <Button asChild variant="secondary">
+            <Link href={`/albums/${album.id}?view=${view}`}>Clear</Link>
+          </Button>
+        ) : null}
+      </form>
 
-      <GalleryPagination page={currentPage} pageSize={pageSize} total={albumMedia.length} totalPages={totalPages} hrefForPage={pageHref} />
+      <MediaGrid items={pagedItems} density={view} returnTo={`/albums/${album.id}?${returnParams.toString()}`} />
+
+      <GalleryPagination page={currentPage} pageSize={pageSize} total={total} totalPages={totalPages} hrefForPage={pageHref} />
     </AppShell>
   );
 }

@@ -13,7 +13,7 @@ describe("gallery filters", () => {
 
   it("builds sort order", () => {
     expect(buildMediaOrderBy({ sort: "oldest" })).toEqual([{ uploadedAt: "asc" }]);
-    expect(buildMediaOrderBy({ sort: "newest" })).toEqual([{ captureAt: "desc" }, { uploadedAt: "desc" }]);
+    expect(buildMediaOrderBy({ sort: "newest" })).toEqual([{ captureAt: { sort: "desc", nulls: "last" } }, { uploadedAt: "desc" }]);
   });
 
   it("keeps free text and date filters as separate concerns", () => {

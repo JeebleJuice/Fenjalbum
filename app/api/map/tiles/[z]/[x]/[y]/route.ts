@@ -1,4 +1,3 @@
-import { requireUser } from "@/lib/auth";
 import { openStreetMapTileUrl, parseMapTileCoordinates } from "@/lib/map-tiles";
 
 export const runtime = "nodejs";
@@ -6,7 +5,6 @@ export const runtime = "nodejs";
 const TILE_CACHE_SECONDS = 60 * 60 * 24 * 7;
 
 export async function GET(request: Request, { params }: { params: Promise<{ z: string; x: string; y: string }> }) {
-  await requireUser();
   const tile = parseMapTileCoordinates(await params);
   if (!tile) return Response.json({ error: "Invalid tile coordinates" }, { status: 400 });
 

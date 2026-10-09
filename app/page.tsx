@@ -17,25 +17,18 @@ function previewSrc(media: { id: string; mediaType: "PHOTO" | "VIDEO"; thumbPath
   return media.mediaType === "PHOTO" ? `/api/media/${media.id}` : null;
 }
 
-function shuffled<T>(items: T[]) {
-  const result = [...items];
-  for (let index = result.length - 1; index > 0; index -= 1) {
-    const target = Math.floor(Math.random() * (index + 1));
-    [result[index], result[target]] = [result[target], result[index]];
-  }
-  return result;
-}
-
 export default async function DiscoverPage() {
   const user = await getCurrentUser();
   if (!user) notFound();
 
   await connection();
-  const readyIds = await prisma.media.findMany({
-    where: { trashedAt: null, processingStatus: "READY" },
-    select: { id: true }
-  });
-  const chosenIds = shuffled(readyIds.map(({ id }) => id)).slice(0, 14);
+  const randomRows = await prisma.$queryRaw<Array<{ id: string }>>`
+    SELECT "id" FROM "Media"
+    WHERE "trashedAt" IS NULL AND "processingStatus" = 'READY'
+    ORDER BY RANDOM()
+    LIMIT 14
+  `;
+  const chosenIds = randomRows.map(({ id }) => id);
   const [chosenMedia, albums, mediaCount, albumCount, favoriteCount, mappedCount] = await Promise.all([
     prisma.media.findMany({
       where: { id: { in: chosenIds } },
@@ -79,6 +72,8 @@ export default async function DiscoverPage() {
                   key={media.id}
                   src={src}
                   alt=""
+                  decoding="async"
+                  fetchPriority={index === 0 ? "high" : "auto"}
                   className={`h-full min-h-0 w-full object-cover ${index === 0 ? "col-span-2 row-span-2" : ""}`}
                 />
               ) : <div key={media.id} className="bg-[hsl(var(--muted))]" />;
@@ -127,7 +122,7 @@ export default async function DiscoverPage() {
               const src = previewSrc(media);
               return (
                 <Link key={media.id} href={`/media/${media.id}?returnTo=${encodeURIComponent("/")}`} className="group relative h-24 w-36 shrink-0 snap-start overflow-hidden rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))] sm:h-28 sm:w-44">
-                  {src ? <img src={src} alt={media.title ?? media.originalFilename} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : null}
+                  {src ? <img src={src} alt={media.title ?? media.originalFilename} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
                   {media.mediaType === "VIDEO" ? <Film className="absolute right-2 top-2 h-4 w-4 text-white drop-shadow" /> : null}
                   <div className="absolute inset-x-0 bottom-0 p-2 text-white"><div className="truncate text-xs font-medium">{media.title ?? media.originalFilename}</div><div className="text-[10px] text-white/65">{formatCaptureDate(media.captureAt)}</div></div>
@@ -139,7 +134,7 @@ export default async function DiscoverPage() {
               const src = cover ? previewSrc(cover) : null;
               return (
                 <Link key={album.id} href={`/albums/${album.id}`} className="group relative h-24 w-36 shrink-0 snap-start overflow-hidden rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))] sm:h-28 sm:w-44">
-                  {src ? <img src={src} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : null}
+                  {src ? <img src={src} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
                   <Album className="absolute right-2 top-2 h-4 w-4 text-white drop-shadow" />
                   <div className="absolute inset-x-0 bottom-0 p-2 text-white"><div className="truncate text-xs font-medium">{album.title}</div><div className="text-[10px] text-white/65">{album._count.memberships} items</div></div>

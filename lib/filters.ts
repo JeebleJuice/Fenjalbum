@@ -50,6 +50,6 @@ export function buildMediaOrderBy(filters: GalleryFilters): Prisma.MediaOrderByW
       return [{ uploadedAt: "desc" }];
     case "newest":
     default:
-      return [{ captureAt: "desc" }, { uploadedAt: "desc" }];
+      return [{ captureAt: { sort: "desc", nulls: "last" } }, { uploadedAt: "desc" }];
   }
 }

@@ -15,7 +15,7 @@ function responseForFile(filePath: string, contentType: string, download = false
   const headers = new Headers({
     "Content-Type": contentType,
     "Accept-Ranges": "bytes",
-    "Cache-Control": "private, max-age=60, stale-while-revalidate=300",
+    "Cache-Control": "private, max-age=3600, stale-while-revalidate=86400",
     "Content-Length": String(range ? range.end - range.start + 1 : stat.size)
   });
   if (download) {

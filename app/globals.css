@@ -26,6 +26,9 @@
 
 html {
   color-scheme: light;
+  min-height: 100%;
+  overscroll-behavior-y: none;
+  background: hsl(var(--bg));
 }
 
 html.dark {
@@ -33,13 +36,25 @@ html.dark {
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  color: hsl(var(--fg));
+  font-feature-settings: "ss01", "ss02", "cv11";
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: -8rem;
+  z-index: -1;
+  pointer-events: none;
+  transform: translateZ(0);
   background:
     radial-gradient(circle at top, rgba(120, 140, 255, 0.12), transparent 28%),
     radial-gradient(circle at bottom right, rgba(80, 190, 255, 0.08), transparent 24%),
     hsl(var(--bg));
-  color: hsl(var(--fg));
-  font-feature-settings: "ss01", "ss02", "cv11";
 }
 
 * {
@@ -85,9 +100,25 @@ body {
 }
 
 .leaflet-container {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   background: hsl(var(--muted));
   color: #111827;
   font-family: inherit;
+}
+
+.media-card,
+.upload-queue-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 18rem;
+}
+
+@media (hover: none) {
+  .media-card,
+  .media-card img {
+    transition-duration: 0s !important;
+  }
 }
 
 /* Leaflet 1.9.4 uses plus-lighter to hide Chromium tile seams. Against our

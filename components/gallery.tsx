@@ -59,7 +59,7 @@ export function MediaGrid({
           <Link
             key={item.id}
             href={mediaHref(item.id)}
-            className="group overflow-hidden rounded-[1rem] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
+            className="media-card group overflow-hidden rounded-[1rem] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
           >
             <div className="relative overflow-hidden">
               {item.thumbSrc ? (
@@ -67,6 +67,7 @@ export function MediaGrid({
                   src={item.thumbSrc}
                   alt={item.title ?? item.originalFilename}
                   loading="lazy"
+                  decoding="async"
                   className="aspect-square w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                 />
               ) : (
@@ -97,7 +98,7 @@ export function MediaGrid({
           <Link
             key={item.id}
             href={mediaHref(item.id)}
-            className="group overflow-hidden rounded-[1.25rem] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
+            className="media-card group overflow-hidden rounded-[1.25rem] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
           >
             <div className="relative overflow-hidden">
               {item.thumbSrc ? (
@@ -105,6 +106,7 @@ export function MediaGrid({
                   src={item.thumbSrc}
                   alt={item.title ?? item.originalFilename}
                   loading="lazy"
+                  decoding="async"
                   className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                 />
               ) : (
@@ -131,7 +133,7 @@ export function MediaGrid({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {items.map((item) => (
-        <article key={item.id}>
+        <article key={item.id} className="media-card">
           <Link
             href={mediaHref(item.id)}
             className="group block overflow-hidden rounded-[1.6rem] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
@@ -143,6 +145,7 @@ export function MediaGrid({
                     src={item.thumbSrc}
                     alt={item.title ?? item.originalFilename}
                     loading="lazy"
+                    decoding="async"
                     className="aspect-[5/4] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />

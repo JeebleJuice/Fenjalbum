@@ -15,7 +15,7 @@ export function ProcessingIndicator() {
 
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
-    const interval = window.setInterval(() => void refresh(), 5_000);
+    const interval = window.setInterval(() => void refresh(), 10_000);
     const onVisibility = () => { if (document.visibilityState === "visible") void refresh(); };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {

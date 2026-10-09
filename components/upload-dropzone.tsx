@@ -359,8 +359,8 @@ export function UploadDropzone({
                 <div className="h-full rounded-full bg-[hsl(var(--accent))] transition-[width]" style={{ width: `${progress}%` }} />
               </div>
             </div>
-            {items.slice(0, 100).map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-4 rounded-2xl border border-[hsl(var(--border))] px-4 py-3 text-sm">
+            {items.slice(0, 40).map((item) => (
+              <div key={item.id} className="upload-queue-item flex items-center justify-between gap-4 rounded-2xl border border-[hsl(var(--border))] px-4 py-3 text-sm">
                 <span className="min-w-0 truncate">{item.name}</span>
                 <span className="shrink-0 text-right text-xs uppercase tracking-wide text-[hsl(var(--fg))]/60">
                   {item.status}
@@ -368,7 +368,7 @@ export function UploadDropzone({
                 </span>
               </div>
             ))}
-            {items.length > 100 ? <p className="text-center text-xs text-[hsl(var(--fg))]/55">Showing the first 100 files; all {items.length} files remain queued.</p> : null}
+            {items.length > 40 ? <p className="text-center text-xs text-[hsl(var(--fg))]/55">Showing the first 40 files; all {items.length} files remain queued.</p> : null}
           </div>
         ) : null}
       </div>
