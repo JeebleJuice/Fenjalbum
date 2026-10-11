@@ -64,6 +64,9 @@ function groupNearby(points: MapMediaPoint[]) {
 
 export function PhotoMap({ points, focusedMediaId }: { points: MapMediaPoint[]; focusedMediaId?: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const largePreviewRef = useRef<HTMLDivElement | null>(null);
+  const largePreviewImageRef = useRef<HTMLImageElement | null>(null);
+  const largePreviewLabelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || points.length === 0) return;
@@ -77,6 +80,11 @@ export function PhotoMap({ points, focusedMediaId }: { points: MapMediaPoint[]; 
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
+
+      const hideLargePreview = () => {
+        largePreviewRef.current?.classList.remove("is-visible");
+        largePreviewRef.current?.setAttribute("aria-hidden", "true");
+      };
 
       const bounds: Array<[number, number]> = [];
       let focusedMarker: import("leaflet").CircleMarker | null = null;
@@ -104,7 +112,6 @@ export function PhotoMap({ points, focusedMediaId }: { points: MapMediaPoint[]; 
         const heading = document.createElement("strong");
         heading.textContent = `${group.items.length} ${group.items.length === 1 ? "memory" : "memories"} here`;
         popup.appendChild(heading);
-        const previewLinks: HTMLAnchorElement[] = [];
         for (const item of group.items.slice(0, 6)) {
           const link = document.createElement("a");
           link.href = `/media/${encodeURIComponent(item.id)}?returnTo=${encodeURIComponent("/map")}`;
@@ -113,7 +120,17 @@ export function PhotoMap({ points, focusedMediaId }: { points: MapMediaPoint[]; 
             image.src = item.thumbSrc;
             image.alt = "";
             link.appendChild(image);
-            previewLinks.push(link);
+            link.addEventListener("mouseenter", () => {
+              if (!largePreviewRef.current || !largePreviewImageRef.current || !largePreviewLabelRef.current) return;
+              largePreviewImageRef.current.src = item.thumbSrc!;
+              largePreviewImageRef.current.alt = item.title;
+              largePreviewLabelRef.current.textContent = item.capturedAt
+                ? `${item.title} · ${formatDisplayDate(item.capturedAt)}`
+                : item.title;
+              largePreviewRef.current.classList.add("is-visible");
+              largePreviewRef.current.setAttribute("aria-hidden", "false");
+            });
+            link.addEventListener("mouseleave", hideLargePreview);
           }
           const label = document.createElement("span");
           label.textContent = item.capturedAt ? `${item.title} · ${formatDisplayDate(item.capturedAt)}` : item.title;
@@ -125,12 +142,8 @@ export function PhotoMap({ points, focusedMediaId }: { points: MapMediaPoint[]; 
           remainder.textContent = `+ ${group.items.length - 6} more`;
           popup.appendChild(remainder);
         }
-        marker.bindPopup(popup, { maxWidth: 420, minWidth: 300 });
-        for (const link of previewLinks) {
-          const updatePopupLayout = () => requestAnimationFrame(() => marker.getPopup()?.update());
-          link.addEventListener("mouseenter", updatePopupLayout);
-          link.addEventListener("mouseleave", updatePopupLayout);
-        }
+        marker.bindPopup(popup, { maxWidth: 300, minWidth: 220 });
+        marker.on("popupclose", hideLargePreview);
         if (focusedMediaId && group.items.some((item) => item.id === focusedMediaId)) {
           focusedMarker = marker;
           focusedLocation = location;
@@ -150,5 +163,14 @@ export function PhotoMap({ points, focusedMediaId }: { points: MapMediaPoint[]; 
     };
   }, [focusedMediaId, points]);
 
-  return <div ref={containerRef} className="h-full min-h-[18rem] w-full rounded-[1.25rem]" aria-label="Map of media capture locations" />;
+  return (
+    <div className="relative h-full min-h-[18rem] w-full">
+      <div ref={containerRef} className="h-full w-full rounded-[1.25rem]" aria-label="Map of media capture locations" />
+      <div ref={largePreviewRef} className="fenjalbum-map-large-preview" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img ref={largePreviewImageRef} alt="" />
+        <div ref={largePreviewLabelRef} />
+      </div>
+    </div>
+  );
 }
