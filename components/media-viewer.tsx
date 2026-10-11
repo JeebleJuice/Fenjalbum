@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Download, Edit3, Heart, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, Edit3, Heart, MapPinned, Trash2, X } from "lucide-react";
 import { Button, Input, Panel, Textarea } from "@/components/ui";
 import { formatDisplayDateTime } from "@/lib/date-format";
 
@@ -19,6 +19,8 @@ export type ViewerItem = {
   duration: number | null;
   uploadedAt: string;
   captureAt: string | null;
+  latitude: number | null;
+  longitude: number | null;
   favorite: boolean;
   albumIds: string[];
   albumTitles: string[];
@@ -194,6 +196,23 @@ export function MediaViewer({
                 <dt className="text-[hsl(var(--fg))]/60">Upload date</dt>
                 <dd className="text-right">{formatDisplayDateTime(item.uploadedAt)}</dd>
               </div>
+              {item.latitude !== null && item.longitude !== null ? (
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="text-[hsl(var(--fg))]/60">Location</dt>
+                  <dd className="text-right">
+                    <div className="tabular-nums">
+                      {item.latitude.toFixed(5)}, {item.longitude.toFixed(5)}
+                    </div>
+                    <a
+                      className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[hsl(var(--accent))] hover:underline"
+                      href={`/map?media=${encodeURIComponent(item.id)}`}
+                    >
+                      <MapPinned className="h-3.5 w-3.5" />
+                      View on map
+                    </a>
+                  </dd>
+                </div>
+              ) : null}
               <div className="flex justify-between gap-3">
                 <dt className="text-[hsl(var(--fg))]/60">Albums</dt>
                 <dd className="text-right">{item.albumTitles.join(", ") || "No album"}</dd>

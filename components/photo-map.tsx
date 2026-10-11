@@ -14,6 +14,41 @@ export type MapMediaPoint = {
 
 type PointGroup = { latitude: number; longitude: number; items: MapMediaPoint[] };
 
+function buildHoverPreview(group: PointGroup) {
+  const preview = document.createElement("div");
+  preview.className = "fenjalbum-map-hover-preview";
+
+  const images = group.items.filter((item) => item.thumbSrc).slice(0, 4);
+  if (images.length) {
+    const mosaic = document.createElement("div");
+    mosaic.className = `fenjalbum-map-hover-images${images.length === 1 ? " is-single" : ""}`;
+    for (const item of images) {
+      const image = document.createElement("img");
+      image.src = item.thumbSrc!;
+      image.alt = item.title;
+      mosaic.appendChild(image);
+    }
+    preview.appendChild(mosaic);
+  }
+
+  const description = document.createElement("div");
+  description.className = "fenjalbum-map-hover-description";
+  const title = document.createElement("strong");
+  title.textContent = group.items.length === 1
+    ? group.items[0].title
+    : `${group.items.length} memories here`;
+  description.appendChild(title);
+
+  const firstCaptureDate = group.items.find((item) => item.capturedAt)?.capturedAt;
+  if (firstCaptureDate) {
+    const date = document.createElement("span");
+    date.textContent = formatDisplayDate(firstCaptureDate);
+    description.appendChild(date);
+  }
+  preview.appendChild(description);
+  return preview;
+}
+
 function groupNearby(points: MapMediaPoint[]) {
   const groups = new Map<string, MapMediaPoint[]>();
   for (const point of points) {
@@ -27,7 +62,7 @@ function groupNearby(points: MapMediaPoint[]) {
   }));
 }
 
-export function PhotoMap({ points }: { points: MapMediaPoint[] }) {
+export function PhotoMap({ points, focusedMediaId }: { points: MapMediaPoint[]; focusedMediaId?: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -44,6 +79,8 @@ export function PhotoMap({ points }: { points: MapMediaPoint[] }) {
       }).addTo(map);
 
       const bounds: Array<[number, number]> = [];
+      let focusedMarker: import("leaflet").CircleMarker | null = null;
+      let focusedLocation: [number, number] | null = null;
       for (const group of groupNearby(points)) {
         const location: [number, number] = [group.latitude, group.longitude];
         bounds.push(location);
@@ -54,6 +91,13 @@ export function PhotoMap({ points }: { points: MapMediaPoint[] }) {
           fillColor: "hsl(226 75% 58%)",
           fillOpacity: 0.9
         }).addTo(map);
+
+        marker.bindTooltip(buildHoverPreview(group), {
+          className: "fenjalbum-map-hover-tooltip",
+          direction: "top",
+          offset: [0, -10],
+          opacity: 1
+        });
 
         const popup = document.createElement("div");
         popup.className = "fenjalbum-map-popup";
@@ -80,9 +124,16 @@ export function PhotoMap({ points }: { points: MapMediaPoint[] }) {
           popup.appendChild(remainder);
         }
         marker.bindPopup(popup, { maxWidth: 300, minWidth: 220 });
+        if (focusedMediaId && group.items.some((item) => item.id === focusedMediaId)) {
+          focusedMarker = marker;
+          focusedLocation = location;
+        }
       }
 
-      if (bounds.length === 1) map.setView(bounds[0], 11);
+      if (focusedMarker && focusedLocation) {
+        map.setView(focusedLocation, 15);
+        focusedMarker.openPopup();
+      } else if (bounds.length === 1) map.setView(bounds[0], 11);
       else map.fitBounds(bounds, { padding: [36, 36], maxZoom: 12 });
     });
 
@@ -90,7 +141,7 @@ export function PhotoMap({ points }: { points: MapMediaPoint[] }) {
       disposed = true;
       map?.remove();
     };
-  }, [points]);
+  }, [focusedMediaId, points]);
 
   return <div ref={containerRef} className="h-full min-h-[18rem] w-full rounded-[1.25rem]" aria-label="Map of media capture locations" />;
 }

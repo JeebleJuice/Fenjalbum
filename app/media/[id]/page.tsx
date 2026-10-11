@@ -64,6 +64,8 @@ export default async function MediaPage({
         duration: current.duration,
         uploadedAt: current.uploadedAt.toISOString(),
         captureAt: current.captureAt?.toISOString() ?? null,
+        latitude: current.latitude,
+        longitude: current.longitude,
         favorite: current.favorite,
         albumIds: current.albums.map((membership) => membership.albumId),
         albumTitles: current.albums.map((membership) => membership.album.title),

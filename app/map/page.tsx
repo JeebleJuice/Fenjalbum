@@ -9,9 +9,14 @@ import { AppShell } from "@/components/app-shell";
 import { PhotoMap } from "@/components/photo-map";
 import { Button, Panel } from "@/components/ui";
 
-export default async function MapPage() {
+export default async function MapPage({
+  searchParams
+}: {
+  searchParams: Promise<{ media?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) notFound();
+  const { media: focusedMediaId } = await searchParams;
   const media = await prisma.media.findMany({
     where: { trashedAt: null, latitude: { not: null }, longitude: { not: null } },
     select: {
@@ -44,7 +49,7 @@ export default async function MapPage() {
           <div className="shrink-0 text-sm text-[hsl(var(--fg))]/55">{points.length} items</div>
         </Panel>
         {points.length ? (
-          <Panel className="min-h-0 flex-1 overflow-hidden p-2"><PhotoMap points={points} /></Panel>
+          <Panel className="min-h-0 flex-1 overflow-hidden p-2"><PhotoMap points={points} focusedMediaId={focusedMediaId} /></Panel>
         ) : (
           <Panel className="flex min-h-0 flex-1 flex-col items-center justify-center p-8 text-center"><MapPinned className="h-8 w-8 text-[hsl(var(--fg))]/35" /><h2 className="mt-3 text-lg font-semibold">No locations yet</h2><p className="mt-2 max-w-lg text-sm text-[hsl(var(--fg))]/60">Fenjalbum will place media here when its metadata contains GPS coordinates.</p><Button asChild className="mt-5"><Link href="/upload">Upload geotagged media</Link></Button></Panel>
         )}
