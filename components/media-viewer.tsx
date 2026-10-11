@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Download, Edit3, Heart, MapPinned, Trash2, X } from "lucide-react";
 import { Button, Input, Panel, Textarea } from "@/components/ui";
+import { MediaLocationMap } from "@/components/media-location-map";
 import { formatDisplayDateTime } from "@/lib/date-format";
 
 export type ViewerItem = {
@@ -174,7 +175,7 @@ export function MediaViewer({
           </div>
         </div>
 
-        <aside className="border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+        <aside className="overflow-y-auto border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
           <Panel className="space-y-3 p-4">
             <div>
               <div className="text-sm font-semibold">Details</div>
@@ -226,6 +227,25 @@ export function MediaViewer({
               ))}
             </div>
           </Panel>
+
+          {item.latitude !== null && item.longitude !== null ? (
+            <Panel className="mt-4 overflow-hidden p-0">
+              <div className="flex items-center justify-between gap-3 px-4 py-3">
+                <div>
+                  <div className="text-sm font-semibold">Photo location</div>
+                  <div className="mt-0.5 text-xs text-[hsl(var(--fg))]/55">GPS data from this file</div>
+                </div>
+                <a
+                  className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-[hsl(var(--accent))] hover:underline"
+                  href={`/map?media=${encodeURIComponent(item.id)}`}
+                >
+                  <MapPinned className="h-3.5 w-3.5" />
+                  Full map
+                </a>
+              </div>
+              <MediaLocationMap latitude={item.latitude} longitude={item.longitude} />
+            </Panel>
+          ) : null}
 
           {editing ? (
             <Panel className="mt-4 space-y-3 p-4">

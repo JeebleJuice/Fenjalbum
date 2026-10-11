@@ -146,6 +146,26 @@ body::before {
   height: 2.5rem;
   border-radius: 0.65rem;
   object-fit: cover;
+  transition: width 160ms ease, height 160ms ease;
+}
+
+@media (hover: hover) {
+  .fenjalbum-map-popup > a {
+    transition: grid-template-columns 160ms ease, background-color 160ms ease;
+  }
+
+  .fenjalbum-map-popup > a:hover {
+    grid-template-columns: 8rem minmax(0, 1fr);
+    margin-inline: -0.25rem;
+    padding: 0.25rem;
+    border-radius: 0.8rem;
+    background: #eef2ff;
+  }
+
+  .fenjalbum-map-popup > a:hover img {
+    width: 8rem;
+    height: 6rem;
+  }
 }
 
 .leaflet-tooltip.fenjalbum-map-hover-tooltip {
