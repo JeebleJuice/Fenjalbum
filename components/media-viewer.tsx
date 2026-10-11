@@ -204,13 +204,6 @@ export function MediaViewer({
                     <div className="tabular-nums">
                       {item.latitude.toFixed(5)}, {item.longitude.toFixed(5)}
                     </div>
-                    <a
-                      className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[hsl(var(--accent))] hover:underline"
-                      href={`/map?media=${encodeURIComponent(item.id)}`}
-                    >
-                      <MapPinned className="h-3.5 w-3.5" />
-                      View on map
-                    </a>
                   </dd>
                 </div>
               ) : null}

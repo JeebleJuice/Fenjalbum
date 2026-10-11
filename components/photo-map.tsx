@@ -104,6 +104,7 @@ export function PhotoMap({ points, focusedMediaId }: { points: MapMediaPoint[]; 
         const heading = document.createElement("strong");
         heading.textContent = `${group.items.length} ${group.items.length === 1 ? "memory" : "memories"} here`;
         popup.appendChild(heading);
+        const previewLinks: HTMLAnchorElement[] = [];
         for (const item of group.items.slice(0, 6)) {
           const link = document.createElement("a");
           link.href = `/media/${encodeURIComponent(item.id)}?returnTo=${encodeURIComponent("/map")}`;
@@ -112,6 +113,7 @@ export function PhotoMap({ points, focusedMediaId }: { points: MapMediaPoint[]; 
             image.src = item.thumbSrc;
             image.alt = "";
             link.appendChild(image);
+            previewLinks.push(link);
           }
           const label = document.createElement("span");
           label.textContent = item.capturedAt ? `${item.title} · ${formatDisplayDate(item.capturedAt)}` : item.title;
@@ -123,7 +125,12 @@ export function PhotoMap({ points, focusedMediaId }: { points: MapMediaPoint[]; 
           remainder.textContent = `+ ${group.items.length - 6} more`;
           popup.appendChild(remainder);
         }
-        marker.bindPopup(popup, { maxWidth: 300, minWidth: 220 });
+        marker.bindPopup(popup, { maxWidth: 420, minWidth: 300 });
+        for (const link of previewLinks) {
+          const updatePopupLayout = () => requestAnimationFrame(() => marker.getPopup()?.update());
+          link.addEventListener("mouseenter", updatePopupLayout);
+          link.addEventListener("mouseleave", updatePopupLayout);
+        }
         if (focusedMediaId && group.items.some((item) => item.id === focusedMediaId)) {
           focusedMarker = marker;
           focusedLocation = location;
